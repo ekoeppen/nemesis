@@ -1,0 +1,13 @@
+code abc
+  $1234 #5678 %0101 5678
+end-code
+
+code lit
+  $4674 $3C01 $8821 $3402 $8822 $0412 $4311
+  $3403 $3E04 $6030 $0008 $46A7
+end-code
+
+: cr 1 2 3 $80000000 ;
+: p postpone lit ;
+: : abc ;
+: ; cr ; immediate
