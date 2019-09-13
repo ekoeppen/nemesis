@@ -1,14 +1,19 @@
-(ocamllex (modules lexer))
+(ocamllex (modules forthlexer))
 (menhir (modules menhir_parser))
 
-(library
+(executable
   (name nemesis)
   (libraries
     nice_parser
     core
     str
     base
+    cmdliner
+    logs
+    fmt.tty
+    fmt.cli
+    logs.fmt
+    logs.cli
   )
   (preprocess (pps ppx_jane))
-  (inline_tests)
 )

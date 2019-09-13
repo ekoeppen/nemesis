@@ -9,6 +9,10 @@ type definition = {
   constant : bool;
 }
 
+type content = {
+  value : string ;
+}
+
 type program = definition list
 
 let find program w =

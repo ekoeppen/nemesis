@@ -4,6 +4,7 @@ open Core
 type word =
   | Call of string
   | Number of int
+  | String of string
   | Immediate
   | Postpone
   | Char
@@ -43,6 +44,7 @@ let of_word w =
   | Number n -> Printf.sprintf "%04x" n
   | Immediate -> "IMMEDIATE"
   | Postpone -> "POSTPONE"
+  | String s -> "\"" ^ s ^ "\""
   | Char -> "[CHAR]"
   | If -> "IF"
   | Else -> "ELSE"
@@ -67,11 +69,14 @@ let of_string d s =
   | "while" -> While
   | "repeat" -> Repeat
   | "again" -> Again
-  | s -> if Ast0.find d s
-    then Call s
-    else match to_number s with
-    | Some n -> Number n
-    | None -> Undefined s
+  | w -> if Ast0.find d w
+    then Call w
+    else begin if String.is_prefix s ~prefix:".\""
+      then String (s |> String.chop_prefix_exn ~prefix:".\" " |> String.chop_suffix_exn ~suffix:"\"")
+      else match to_number s with
+      | Some n -> Number n
+      | None -> Undefined w
+    end
 
 let of_ast0_words (p : Ast0.program) (w : string list) =
   List.map ~f:(fun d -> of_string p d) w

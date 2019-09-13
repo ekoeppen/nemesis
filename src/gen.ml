@@ -12,14 +12,16 @@ let align a data =
   if delta > 0 then Buffer.add_bytes data (Bytes.make delta '\xff')
 
 let append_short n data =
-  Buffer.add_char data (char_of_int (n mod 256));
-  Buffer.add_char data (char_of_int ((n / 256) mod 256))
+  let q = (if n < 0 then 0xffffffff + n + 1 else n) in
+  Buffer.add_char data (char_of_int (q mod 256));
+  Buffer.add_char data (char_of_int ((q / 256) mod 256))
 
 let append_int n data =
-  Buffer.add_char data (char_of_int (n mod 256));
-  Buffer.add_char data (char_of_int ((n / 256) mod 256));
-  Buffer.add_char data (char_of_int ((n / 256 / 256) mod 256));
-  Buffer.add_char data (char_of_int ((n / 256 / 256 / 256 ) mod 256))
+  let q = (if n < 0 then 0xffffffff + n + 1 else n) in
+  Buffer.add_char data (char_of_int (q mod 256));
+  Buffer.add_char data (char_of_int ((q / 256) mod 256));
+  Buffer.add_char data (char_of_int ((q / 256 / 256) mod 256));
+  Buffer.add_char data (char_of_int ((q / 256 / 256 / 256 ) mod 256))
 
 let push_here n =
   Stack.push here_stack n
@@ -103,6 +105,11 @@ let postpone_word dict word data =
 let append_call dict word data =
   match word with
   | Call s -> resolve_word dict s data
+  | String s ->
+      resolve_word dict "(s\")" data;
+      Buffer.add_char data (char_of_int (String.length s));
+      Buffer.add_string data s;
+      align 4 data ; resolve_word dict "type" data
   | Number n -> resolve_word dict "lit" data; append_int n data
   | Immediate -> update_char (!latest + 4) '\xfe' data
   | If ->
