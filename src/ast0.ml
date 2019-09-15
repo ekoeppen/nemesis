@@ -2,11 +2,12 @@ open Base
 open Core
 
 type definition = {
-  name : string ;
-  words : string list ;
+  name : string;
+  words : string list;
   immediate : bool;
   code : bool;
   constant : bool;
+  deferred : bool;
 }
 
 type content = {

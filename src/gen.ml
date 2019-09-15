@@ -1,5 +1,4 @@
 open Ast1
-open Stdlib
 open Core
 
 let latest = ref 0
@@ -76,6 +75,11 @@ let add_exit data =
   Buffer.add_char data '\x00';
   Buffer.add_char data '\xbd'
 
+let add_deferred data =
+  append_short 0x4900 data;
+  append_short 0x468f data;
+  append_int 0xffffffff data
+
 let addr_to_branch addr data =
   let delta = (addr - (here data) - 4) asr 1 in
   let lower = (delta asr 11) land 0x000003ff in
@@ -109,7 +113,7 @@ let append_call dict word data =
       resolve_word dict "(s\")" data;
       Buffer.add_char data (char_of_int (String.length s));
       Buffer.add_string data s;
-      align 4 data ; resolve_word dict "type" data
+      align 4 data
   | Number n -> resolve_word dict "lit" data; append_int n data
   | Immediate -> update_char (!latest + 4) '\xfe' data
   | If ->
@@ -174,9 +178,13 @@ let rec process_thread dict words data =
 let handle_word (dict : Ast1.program) (word : Ast1.definition) data =
   add_header word data;
   let h = here data in
-  add_enter data;
-  process_thread dict word.thread data;
-  add_exit data;
+  if (word.deferred) then begin
+    add_deferred data
+  end else begin
+    add_enter data;
+    process_thread dict word.thread data;
+    add_exit data
+  end;
   word.length <- ((here data) - h)
 
 let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
@@ -188,7 +196,7 @@ let generate_program_code p =
   let data = Buffer.create (64 * 1024) in
   Buffer.add_bytes data (Bytes.make 0x90 '\xff');
   let _result = List.fold ~init:(p, data) ~f:(fun acc word -> (generate_word_code (fst acc) word data); acc) p in
-  let _ = Ast1.print_program p in
+  let _ = if Logs.level () = Some Info then Ast1.print_program p else p in
   let cold = match Ast1.find_word p "cold" with
   | Some w -> w.address
   | None -> 0 in

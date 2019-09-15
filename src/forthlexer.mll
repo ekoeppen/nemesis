@@ -20,16 +20,17 @@ rule next_token = parse
   | newline { Lexing.new_line lexbuf; next_token lexbuf }
   | '\\' { line_comment lexbuf; next_token lexbuf }
   | '(' { comment lexbuf; next_token lexbuf }
-  | ".\" " [ ^ '"' ]+ "\"" { STRING (Lexing.lexeme lexbuf) }
+  | "s\" " [ ^ '"' ]+ "\"" { STRING (Lexing.lexeme lexbuf) }
 
   (* YOUR TOKENS HERE... *)
   | ':' { COLON }
   | ';' { SEMICOLON }
   | "constant" { CONSTANT }
+  | "defer" { DEFER }
   | "immediate" { IMMEDIATE }
   | "code" { CODE }
   | "end-code" { END_CODE }
-  | ": .\"" { DOTQUOTE_DEF }
+  | ": s\"" { SQUOTE_DEF }
 
   (* lex identifiers last, so keywords are not lexed as identifiers *)
   | ident as word { WORD word }

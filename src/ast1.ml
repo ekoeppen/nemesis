@@ -24,6 +24,7 @@ type definition = {
   thread : word list ;
   code : bool ;
   constant : bool;
+  deferred : bool;
   mutable address : int ;
   mutable length : int ;
 }
@@ -44,7 +45,7 @@ let of_word w =
   | Number n -> Printf.sprintf "%04x" n
   | Immediate -> "IMMEDIATE"
   | Postpone -> "POSTPONE"
-  | String s -> "\"" ^ s ^ "\""
+  | String s -> "s\"" ^ s ^ "\""
   | Char -> "[CHAR]"
   | If -> "IF"
   | Else -> "ELSE"
@@ -71,8 +72,8 @@ let of_string d s =
   | "again" -> Again
   | w -> if Ast0.find d w
     then Call w
-    else begin if String.is_prefix s ~prefix:".\""
-      then String (s |> String.chop_prefix_exn ~prefix:".\" " |> String.chop_suffix_exn ~suffix:"\"")
+    else begin if String.is_prefix s ~prefix:"s\""
+      then String (s |> String.chop_prefix_exn ~prefix:"s\" " |> String.chop_suffix_exn ~suffix:"\"")
       else match to_number s with
       | Some n -> Number n
       | None -> Undefined w
@@ -87,6 +88,7 @@ let of_ast0_program (p : Ast0.program) =
       immediate = d.immediate;
       code = d.code;
       constant = d.constant;
+      deferred = d.deferred;
       thread = of_ast0_words p d.words;
       address = 0;
       length = 0;
