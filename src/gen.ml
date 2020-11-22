@@ -14,18 +14,6 @@ let push_here n =
 let pop_here () =
   Stack.pop_exn here_stack
 
-let add_header (word : Ast1.definition) data =
-  Data.align data;
-  let l = Data.here data in
-  Data.append_int (!latest + base) data;
-  latest := l;
-  Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
-  Buffer.add_char data '\xff';
-  Buffer.add_char data (char_of_int (String.length word.name));
-  Buffer.add_string data word.name;
-  Data.align data;
-  word.address <- (Data.here data) + base
-
 let add_enter data =
   Buffer.add_char data '\x00';
   Buffer.add_char data '\xb5'
@@ -78,7 +66,7 @@ let append_call dict word data =
       resolve_word dict "(s\")" data;
       Buffer.add_char data (char_of_int (String.length s));
       Buffer.add_string data s;
-      Data.align data
+      Data.align 4 data
   | Number n -> resolve_word dict "lit" data; Data.append_int n data
   | Immediate -> Data.update_char (!latest + 4) '\xfe' data
   | If ->
@@ -106,6 +94,18 @@ let append_call dict word data =
       Data.update_int (pop_here ()) ((Data.here data) + base + 4) data;
       Data.append_int (pop_here () + base) data
   | _ -> ()
+
+let add_header (word : Ast1.definition) data =
+  Data.align 4 data;
+  let l = Data.here data in
+  Data.append_int (!latest + base) data;
+  latest := l;
+  Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
+  Buffer.add_char data '\xff';
+  Buffer.add_char data (char_of_int (String.length word.name));
+  Buffer.add_string data word.name;
+  Data.align 4 data;
+  word.address <- (Data.here data) + base
 
 let handle_code_word (word : Ast1.definition) data =
   add_header word data;

@@ -1,7 +1,6 @@
 open Core
 
-let align data =
-  let a = 4 in
+let align a data =
   let n = (((Buffer.length data) + (a - 1)) land (lnot (a - 1))) in
   let delta = n - Buffer.length data in
   if delta > 0 then Buffer.add_bytes data (Bytes.make delta '\xff')
