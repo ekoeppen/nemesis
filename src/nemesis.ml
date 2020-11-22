@@ -56,7 +56,7 @@ let nemesis _logging output_file srcs =
     |> Ast1.of_ast0_program
     |> Gen.generate_program_code
     |> save output_file
-    |> (if Logs.level () = Some Debug then hexdump else fun s -> s)
+    (* |> (if Logs.level () = Some Debug then hexdump else fun s -> s) *)
   in Out_channel.flush stdout
 
 

@@ -53,7 +53,8 @@ let update_int addr n data =
   let temp_head = Bytes.create head_length in
   let temp_tail = Bytes.create tail_length in
   Buffer.blit ~src:data ~src_pos:0 ~dst:temp_head ~dst_pos:0 ~len:head_length;
-  Buffer.blit ~src:data ~src_pos:(head_length + 4) ~dst:temp_tail ~dst_pos:0 ~len:tail_length;
+  Buffer.blit ~src:data ~src_pos:(head_length + 4) ~dst:temp_tail
+    ~dst_pos:0 ~len:tail_length;
   Buffer.clear data;
   Buffer.add_bytes data temp_head;
   append_int n data;
@@ -93,14 +94,16 @@ let addr_to_branch addr data =
 let resolve_word dict word data =
   match Ast1.find_word dict word with
   | Some w ->
-      if (w.address = 0) then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
+      if (w.address = 0)
+      then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
       append_int (addr_to_branch w.address data) data
   | None -> raise (Failure ("Word not found " ^ word))
 
 let compile_word_address dict word data =
   match Ast1.find_word dict word with
   | Some w ->
-      if (w.address = 0) then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
+      if (w.address = 0)
+      then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
       resolve_word dict "lit" data;
       append_int w.address data
   | None -> raise (Failure ("Word not found " ^ word))
@@ -108,7 +111,8 @@ let compile_word_address dict word data =
 let postpone_word dict word data =
   match Ast1.find_word dict word with
   | Some w ->
-      if (w.address = 0) then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
+      if (w.address = 0)
+      then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
       if (w.immediate) then
         begin append_int (addr_to_branch w.address data) data
       end else begin
@@ -158,7 +162,8 @@ let handle_code_word (word : Ast1.definition) data =
   add_header word data;
   let h = here data in
   if (word.constant) then begin
-    List.iter ~f:(fun c -> append_short c data) [0x3E04; 0x6030; 0x4800; 0x46F7];
+    List.iter ~f:(fun c -> append_short c data)
+      [0x3E04; 0x6030; 0x4800; 0x46F7];
     match List.hd_exn word.thread with
     | Ast1.Number n -> append_int n data
     | _ -> raise (Failure "constants can only be numbers")
@@ -172,24 +177,29 @@ let handle_code_word (word : Ast1.definition) data =
 let compile_postpone dict word data =
   match word with
   | Call s -> postpone_word dict s data
-  | If | Else | Then | Begin | Until | While | Repeat | Again -> resolve_word dict (Ast1.of_word word) data
+  | If | Else | Then | Begin | Until | While | Repeat | Again ->
+      resolve_word dict (Ast1.of_word word) data
   | _ -> raise (Failure "postpone only valid for words")
 
 let compile_bracket_tick dict word data =
   match word with
   | Call s -> compile_word_address dict s data
-  | If | Else | Then | Begin | Until | While | Repeat | Again -> compile_word_address dict (Ast1.of_word word) data
+  | If | Else | Then | Begin | Until | While | Repeat | Again ->
+      compile_word_address dict (Ast1.of_word word) data
   | _ -> raise (Failure "['] only valid for words")
 
 let compile_char dict word data =
   match word with
-  | Call s | Undefined s -> resolve_word dict "lit" data; append_int (Char.to_int (String.get s 0)) data
+  | Call s | Undefined s -> resolve_word dict "lit" data;
+    append_int (Char.to_int (String.get s 0)) data
   | _ -> raise (Failure ("[char] only valid for words, got " ^ (of_word word)))
 
 let rec process_thread dict words data =
   match words with
-  | Postpone :: hd :: tl -> compile_postpone dict hd data; process_thread dict tl data
-  | Bracket_tick :: hd :: tl -> compile_bracket_tick dict hd data; process_thread dict tl data
+  | Postpone :: hd :: tl ->
+      compile_postpone dict hd data; process_thread dict tl data
+  | Bracket_tick :: hd :: tl ->
+      compile_bracket_tick dict hd data; process_thread dict tl data
   | Char :: hd :: tl -> compile_char dict hd data; process_thread dict tl data
   | hd :: tl -> append_call dict hd data; process_thread dict tl data
   | [] -> ()
@@ -214,8 +224,10 @@ let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
 let generate_program_code (p : Ast1.program) =
   let data = Buffer.create (64 * 1024) in
   Buffer.add_bytes data (Bytes.make 0x90 '\xff');
-  let _result = List.fold ~init:(p, data) ~f:(fun acc word -> (generate_word_code (fst acc) word data); acc) p in
-  let _ = if Logs.level () = Some Info then Ast1.print_program p else p in
+  let _result = List.fold
+    ~init:(p, data)
+    ~f:(fun acc word -> (generate_word_code (fst acc) word data); acc) p in
+  (* let _: Ast1.program = if Logs.level () = Some Info then Ast1.print_program p else p in *)
   let cold = match Ast1.find_word p "cold" with
   | Some w -> w.address
   | None -> 0 in
@@ -232,5 +244,6 @@ let generate_program_code (p : Ast1.program) =
   append_int ram header;
   let final = Bytes.create (here data) in
   Buffer.blit ~src:header ~src_pos:0 ~dst:final ~dst_pos:0 ~len:0x90;
-  Buffer.blit ~src:data ~src_pos:0x90 ~dst:final ~dst_pos:0x90 ~len:((here data) - 0x90);
+  Buffer.blit ~src:data ~src_pos:0x90 ~dst:final
+    ~dst_pos:0x90 ~len:((here data) - 0x90);
   final
