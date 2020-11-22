@@ -49,7 +49,7 @@ let logging =
   Term.(const setup_log $ Fmt_cli.style_renderer () $ Logs_cli.level ~env ())
 
 let nemesis _logging output_file srcs =
-  let _ =
+  let _: bytes =
     Forthparser.pp_exceptions ();
     read_files srcs
     |> Forthparser.parse_string

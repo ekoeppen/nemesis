@@ -6,7 +6,6 @@
 %token CODE
 %token END_CODE
 %token CONSTANT
-%token DEFER
 %token SQUOTE_DEF
 %token <string> WORD
 %token <string> STRING
@@ -17,8 +16,6 @@
 %%
 
 definition:
-  | DEFER; name = WORD
-    { { name = name; words = [] ; immediate = false ; deferred = true ; code = false; constant = false } }
   | value = WORD; CONSTANT; name = WORD
     { { name = name; words = [value] ; immediate = true ; deferred = false ; code = true; constant = true } }
   | SQUOTE_DEF; words = list(content); SEMICOLON IMMEDIATE
@@ -27,8 +24,6 @@ definition:
     { { name = "immediate"; words = words ; immediate = false ; deferred = false ; code = false; constant = false } }
   | COLON; COLON; words = list(content); SEMICOLON
     { { name = ":"; words = words ; immediate = false ; deferred = false ; code = false; constant = false } }
-  | COLON; DEFER; words = list(content); SEMICOLON
-    { { name = "defer"; words = words ; immediate = false ; deferred = false ; code = false; constant = false } }
   | COLON; CONSTANT; words = list(content); SEMICOLON
     { { name = "constant"; words = words ; immediate = false ; deferred = false ; code = false; constant = false } }
   | COLON; SEMICOLON; words = list(content); SEMICOLON IMMEDIATE

@@ -7,6 +7,7 @@ $08000080 constant init-cold
 $08000084 constant init-latest
 $08000088 constant init-dp
 $0800008C constant init-vp
+$08010000 constant eval-words
 $20000000 constant dp
 $20000004 constant vp
 $20000008 constant latest

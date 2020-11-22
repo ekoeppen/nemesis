@@ -26,7 +26,6 @@ rule next_token = parse
   | ':' { COLON }
   | ';' { SEMICOLON }
   | "constant" { CONSTANT }
-  | "defer" { DEFER }
   | "immediate" { IMMEDIATE }
   | "code" { CODE }
   | "end-code" { END_CODE }

@@ -7,6 +7,7 @@ type word =
   | String of string
   | Immediate
   | Postpone
+  | Bracket_tick
   | Char
   | If
   | Else
@@ -45,6 +46,7 @@ let of_word w =
   | Number n -> Printf.sprintf "%04x" n
   | Immediate -> "IMMEDIATE"
   | Postpone -> "POSTPONE"
+  | Bracket_tick -> "[']"
   | String s -> "s\"" ^ s ^ "\""
   | Char -> "[CHAR]"
   | If -> "IF"
@@ -60,6 +62,7 @@ let of_word w =
 let of_string d s =
   match String.lowercase s with
   | "postpone" -> Postpone
+  | "[']" -> Bracket_tick
   | "immediate" -> Immediate
   | "[char]" -> Char
   | "if" -> If

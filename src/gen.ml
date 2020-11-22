@@ -2,6 +2,9 @@ open Ast1
 open Core
 
 let latest = ref 0
+let base = 0x08000000
+let ram = 0x20000080
+let stack = 0x20004000
 
 let here_stack = Stack.create ()
 
@@ -58,14 +61,14 @@ let update_int addr n data =
 let add_header (word : Ast1.definition) data =
   align 4 data;
   let l = here data in
-  append_int (!latest + 0x08000000) data;
+  append_int (!latest + base) data;
   latest := l;
   Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
   Buffer.add_char data '\xff';
   Buffer.add_char data (char_of_int (String.length word.name));
   Buffer.add_string data word.name;
   align 4 data;
-  word.address <- (here data) + 0x8000000
+  word.address <- (here data) + base
 
 let add_enter data =
   Buffer.add_char data '\x00';
@@ -76,8 +79,8 @@ let add_exit data =
   Buffer.add_char data '\xbd'
 
 let add_deferred data =
-  append_short 0x4900 data;
-  append_short 0x468f data;
+  append_short 0x46F7 data;
+  append_short 0xffff data;
   append_int 0xffffffff data
 
 let addr_to_branch addr data =
@@ -91,6 +94,14 @@ let resolve_word dict word data =
   | Some w ->
       if (w.address = 0) then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
       append_int (addr_to_branch w.address data) data
+  | None -> raise (Failure ("Word not found " ^ word))
+
+let compile_word_address dict word data =
+  match Ast1.find_word dict word with
+  | Some w ->
+      if (w.address = 0) then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
+      resolve_word dict "lit" data;
+      append_int w.address data
   | None -> raise (Failure ("Word not found " ^ word))
 
 let postpone_word dict word data =
@@ -119,27 +130,27 @@ let append_call dict word data =
   | If ->
       resolve_word dict "?branch" data;
       push_here (here data);
-      append_int 0x55aa55aa data
+      append_int 0xffffffff data
   | Else ->
       resolve_word dict "branch" data;
-      append_int 0x55aa55aa data;
-      update_int (pop_here ()) ((here data) + 0x08000000) data;
+      append_int 0xffffffff data;
+      update_int (pop_here ()) ((here data) + base) data;
       push_here ((here data) - 4)
-  | Then -> update_int (pop_here ()) ((here data) + 0x08000000) data
+  | Then -> update_int (pop_here ()) ((here data) + base) data
   | Begin -> push_here (here data)
   | Again ->
       resolve_word dict "branch" data;
-      append_int (pop_here ()) data
+      append_int (pop_here () + base) data
   | Until ->
       resolve_word dict "?branch" data;
-      append_int (pop_here ()) data
+      append_int (pop_here () + base) data
   | While ->
       resolve_word dict "?branch" data;
-      push_here (here data); append_int 0x55aa55aa data
+      push_here (here data); append_int 0xffffffff data
   | Repeat ->
       resolve_word dict "branch" data;
-      update_int (pop_here ()) ((here data) + 0x08000000 + 4) data;
-      append_int (pop_here ()) data
+      update_int (pop_here ()) ((here data) + base + 4) data;
+      append_int (pop_here () + base) data
   | _ -> ()
 
 let handle_code_word (word : Ast1.definition) data =
@@ -163,6 +174,12 @@ let compile_postpone dict word data =
   | If | Else | Then | Begin | Until | While | Repeat | Again -> resolve_word dict (Ast1.of_word word) data
   | _ -> raise (Failure "postpone only valid for words")
 
+let compile_bracket_tick dict word data =
+  match word with
+  | Call s -> compile_word_address dict s data
+  | If | Else | Then | Begin | Until | While | Repeat | Again -> compile_word_address dict (Ast1.of_word word) data
+  | _ -> raise (Failure "['] only valid for words")
+
 let compile_char dict word data =
   match word with
   | Call s | Undefined s -> resolve_word dict "lit" data; append_int (Char.to_int (String.get s 0)) data
@@ -171,6 +188,7 @@ let compile_char dict word data =
 let rec process_thread dict words data =
   match words with
   | Postpone :: hd :: tl -> compile_postpone dict hd data; process_thread dict tl data
+  | Bracket_tick :: hd :: tl -> compile_bracket_tick dict hd data; process_thread dict tl data
   | Char :: hd :: tl -> compile_char dict hd data; process_thread dict tl data
   | hd :: tl -> append_call dict hd data; process_thread dict tl data
   | [] -> ()
@@ -192,7 +210,7 @@ let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
   then handle_code_word word data
   else handle_word dict word data
 
-let generate_program_code p =
+let generate_program_code (p : Ast1.program) =
   let data = Buffer.create (64 * 1024) in
   Buffer.add_bytes data (Bytes.make 0x90 '\xff');
   let _result = List.fold ~init:(p, data) ~f:(fun acc word -> (generate_word_code (fst acc) word data); acc) p in
@@ -204,13 +222,13 @@ let generate_program_code p =
   | Some w -> w.address
   | None -> 0 in
   let header = Buffer.create 0x90 in
-  append_int 0x20004000 header;
+  append_int stack header;
   append_int (reset_handler + 1) header;
   Buffer.add_bytes header (Bytes.make (0x90 - 4 - 4 - (4 * 4)) '\xff');
   append_int (cold + 1) header;
-  append_int (!latest + 0x08000000) header;
-  append_int ((here data) + 0x08000000) header;
-  append_int 0x20000080 header;
+  append_int (!latest + base) header;
+  append_int ((here data) + base) header;
+  append_int ram header;
   let final = Bytes.create (here data) in
   Buffer.blit ~src:header ~src_pos:0 ~dst:final ~dst_pos:0 ~len:0x90;
   Buffer.blit ~src:data ~src_pos:0x90 ~dst:final ~dst_pos:0x90 ~len:((here data) - 0x90);
