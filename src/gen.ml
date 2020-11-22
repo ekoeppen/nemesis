@@ -40,7 +40,8 @@ let update_char addr c data =
   let temp_head = Bytes.create head_length in
   let temp_tail = Bytes.create tail_length in
   Buffer.blit ~src:data ~src_pos:0 ~dst:temp_head ~dst_pos:0 ~len:head_length;
-  Buffer.blit ~src:data ~src_pos:(head_length + 1) ~dst:temp_tail ~dst_pos:0 ~len:tail_length;
+  Buffer.blit ~src:data ~src_pos:(head_length + 1) ~dst:temp_tail
+    ~dst_pos:0 ~len:tail_length;
   Buffer.clear data;
   Buffer.add_bytes data temp_head;
   Buffer.add_char data c;
