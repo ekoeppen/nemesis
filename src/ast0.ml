@@ -7,7 +7,6 @@ type definition = {
   immediate : bool;
   code : bool;
   constant : bool;
-  deferred : bool;
 }
 
 type content = {

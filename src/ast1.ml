@@ -25,7 +25,6 @@ type definition = {
   thread : word list ;
   code : bool ;
   constant : bool;
-  deferred : bool;
   mutable address : int ;
   mutable length : int ;
 }
@@ -91,7 +90,6 @@ let of_ast0_program (p : Ast0.program) =
       immediate = d.immediate;
       code = d.code;
       constant = d.constant;
-      deferred = d.deferred;
       thread = of_ast0_words p d.words;
       address = 0;
       length = 0;

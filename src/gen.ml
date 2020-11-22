@@ -34,11 +34,6 @@ let add_exit data =
   Buffer.add_char data '\x00';
   Buffer.add_char data '\xbd'
 
-let add_deferred data =
-  Data.append_short 0x46F7 data;
-  Data.append_short 0xffff data;
-  Data.append_int 0xffffffff data
-
 let addr_to_branch addr data =
   let delta = (addr - (Data.here data) - 4) asr 1 in
   let lower = (delta asr 11) land 0x000003ff in
@@ -161,13 +156,9 @@ let rec process_thread dict words data =
 let handle_word (dict : Ast1.program) (word : Ast1.definition) data =
   add_header word data;
   let h = Data.here data in
-  if (word.deferred) then begin
-    add_deferred data
-  end else begin
-    add_enter data;
-    process_thread dict word.thread data;
-    add_exit data
-  end;
+  add_enter data;
+  process_thread dict word.thread data;
+  add_exit data;
   word.length <- ((Data.here data) - h)
 
 let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
