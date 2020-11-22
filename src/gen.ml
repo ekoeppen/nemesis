@@ -1,6 +1,8 @@
 open Ast1
 open Core
 
+module Target = Stm32_stc
+
 let latest = ref 0
 let base = 0x08000000
 let ram = 0x20000080
@@ -14,26 +16,12 @@ let push_here n =
 let pop_here () =
   Stack.pop_exn here_stack
 
-let add_enter data =
-  Buffer.add_char data '\x00';
-  Buffer.add_char data '\xb5'
-
-let add_exit data =
-  Buffer.add_char data '\x00';
-  Buffer.add_char data '\xbd'
-
-let addr_to_branch addr data =
-  let delta = (addr - (Data.here data) - 4) asr 1 in
-  let lower = (delta asr 11) land 0x000003ff in
-  let upper = (delta lsl 16) land 0x7fff0000 in
-  lower lor upper lor 0xf800f400
-
 let resolve_word dict word data =
   match Ast1.find_word dict word with
   | Some w ->
       if (w.address = 0)
       then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
-      Data.append_int (addr_to_branch w.address data) data
+      Target.append_call w.address data
   | None -> raise (Failure ("Word not found " ^ word))
 
 let compile_word_address dict word data =
@@ -42,7 +30,7 @@ let compile_word_address dict word data =
       if (w.address = 0)
       then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
       resolve_word dict "lit" data;
-      Data.append_int w.address data
+      Target.append_address w.address data
   | None -> raise (Failure ("Word not found " ^ word))
 
 let postpone_word dict word data =
@@ -50,11 +38,11 @@ let postpone_word dict word data =
   | Some w ->
       if (w.address = 0)
       then raise (Failure ("Word " ^ w.name ^ " not resolved yet"));
-      if (w.immediate) then
-        begin Data.append_int (addr_to_branch w.address data) data
+      if (w.immediate) then begin
+        Target.append_call w.address data
       end else begin
         resolve_word dict "lit" data;
-        Data.append_int w.address data;
+        Target.append_address w.address data;
         resolve_word dict ",call" data
       end
   | None -> raise (Failure ("Word not found " ^ word))
@@ -66,59 +54,60 @@ let append_call dict word data =
       resolve_word dict "(s\")" data;
       Buffer.add_char data (char_of_int (String.length s));
       Buffer.add_string data s;
-      Data.align 4 data
-  | Number n -> resolve_word dict "lit" data; Data.append_int n data
+      Target.align data
+  | Number n -> resolve_word dict "lit" data; Target.append_number n data
   | Immediate -> Data.update_char (!latest + 4) '\xfe' data
   | If ->
       resolve_word dict "?branch" data;
       push_here (Data.here data);
-      Data.append_int 0xffffffff data
+      Target.append_placeholder_address data
   | Else ->
       resolve_word dict "branch" data;
-      Data.append_int 0xffffffff data;
-      Data.update_int (pop_here ()) ((Data.here data) + base) data;
-      push_here ((Data.here data) - 4)
-  | Then -> Data.update_int (pop_here ()) ((Data.here data) + base) data
+      Target.append_placeholder_address data;
+      Target.update_address (pop_here ()) ((Data.here data) + base) data;
+      push_here ((Data.here data) - Target.cell_size)
+  | Then -> Target.update_address (pop_here ()) ((Data.here data) + base) data
   | Begin -> push_here (Data.here data)
   | Again ->
       resolve_word dict "branch" data;
-      Data.append_int (pop_here () + base) data
+      Target.append_address (pop_here () + base) data
   | Until ->
       resolve_word dict "?branch" data;
-      Data.append_int (pop_here () + base) data
+      Target.append_address (pop_here () + base) data
   | While ->
       resolve_word dict "?branch" data;
-      push_here (Data.here data); Data.append_int 0xffffffff data
+      push_here (Data.here data);
+      Target.append_placeholder_address data
   | Repeat ->
       resolve_word dict "branch" data;
-      Data.update_int (pop_here ()) ((Data.here data) + base + 4) data;
-      Data.append_int (pop_here () + base) data
+      Target.update_address (pop_here ())
+        ((Data.here data) + base + Target.cell_size) data;
+      Target.append_address (pop_here () + base) data
   | _ -> ()
 
 let add_header (word : Ast1.definition) data =
-  Data.align 4 data;
+  Target.align data;
   let l = Data.here data in
-  Data.append_int (!latest + base) data;
+  Target.append_address (!latest + base) data;
   latest := l;
   Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
   Buffer.add_char data '\xff';
   Buffer.add_char data (char_of_int (String.length word.name));
   Buffer.add_string data word.name;
-  Data.align 4 data;
+  Target.align data;
   word.address <- (Data.here data) + base
 
 let handle_code_word (word : Ast1.definition) data =
   add_header word data;
   let h = Data.here data in
   if (word.constant) then begin
-    List.iter ~f:(fun c -> Data.append_short c data)
-      [0x3E04; 0x6030; 0x4800; 0x46F7];
+    Target.append_inline_constant data;
     match List.hd_exn word.thread with
-    | Ast1.Number n -> Data.append_int n data
+    | Ast1.Number n -> Target.append_number n data
     | _ -> raise (Failure "constants can only be numbers")
   end else begin List.iter ~f:(fun word ->
     match word with
-    | Ast1.Number n -> Data.append_short n data
+    | Ast1.Number n -> Target.append_code n data
     | _ -> ()) word.thread
   end;
   word.length <- ((Data.here data) - h)
@@ -156,9 +145,9 @@ let rec process_thread dict words data =
 let handle_word (dict : Ast1.program) (word : Ast1.definition) data =
   add_header word data;
   let h = Data.here data in
-  add_enter data;
+  Target.add_enter data;
   process_thread dict word.thread data;
-  add_exit data;
+  Target.add_exit data;
   word.length <- ((Data.here data) - h)
 
 let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
