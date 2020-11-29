@@ -7,6 +7,9 @@ include Hexdump.Of_indexable (struct
   let get = Bytes.get
 end)
 
+module Gen_stm32_stc = Gen.Impl(Stm32_stc)
+module Gen_msp430_dtc = Gen.Impl(Msp430_dtc)
+
 let save output_file data =
   let f = Out_channel.create output_file in
   Out_channel.output f ~buf:data ~len:(Bytes.length data) ~pos:0;
@@ -54,9 +57,8 @@ let nemesis _logging output_file srcs =
     read_files srcs
     |> Forthparser.parse_string
     |> Ast1.of_ast0_program
-    |> Gen.generate_program_code
+    |> Gen_msp430_dtc.generate_image
     |> save output_file
-    (* |> (if Logs.level () = Some Debug then hexdump else fun s -> s) *)
   in Out_channel.flush stdout
 
 

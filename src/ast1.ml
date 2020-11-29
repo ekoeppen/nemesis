@@ -123,3 +123,8 @@ let find_exn d w =
   match find_word d w with
   | Some word -> word
   | None -> raise (Failure ("Word " ^ w ^ " not found"))
+
+let find_word_or_zero d w =
+  match find_word d w with
+  | Some w -> w.address
+  | None -> 0

@@ -1,0 +1,13 @@
+opam-version: "2.0"
+name: "nemesis"
+synopsis: "Simplified Forth compiler"
+maintainer: "Eckhart Koeppen <eck@40hz.org"
+authors: "Eckhart Koeppen <eck@40hz.org"
+license: "Unlicense"
+homepage: "https://github.com/ekoeppen/nemesis"
+depends: [
+  "dune" {build}
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]

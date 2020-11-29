@@ -14,6 +14,7 @@
     fmt.cli
     logs.fmt
     logs.cli
+    hex
   )
   (preprocess (pps ppx_jane))
 )
