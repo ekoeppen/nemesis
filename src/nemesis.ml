@@ -41,7 +41,11 @@ let setup_log style_renderer level =
 
 let output_file =
   let doc = "Output file." in
-  Arg.(value & opt string "coreforth.bin" & info ["o"] ~docv:"OUTPUT" ~doc)
+  Arg.(value & opt string "forth.bin" & info ["o"] ~docv:"OUTPUT" ~doc)
+
+let target =
+  let doc = "Target. One of stm32-stc or msp430-dtc." in
+  Arg.(value & opt string "stm32-stc" & info ["t"] ~docv:"TARGET" ~doc)
 
 let srcs =
   let doc = "Source file(s)." in
@@ -51,13 +55,16 @@ let logging =
   let env = Arg.env_var "NEMESIS_VERBOSITY" in
   Term.(const setup_log $ Fmt_cli.style_renderer () $ Logs_cli.level ~env ())
 
-let nemesis _logging output_file srcs =
+let nemesis _logging target output_file srcs =
   let _: bytes =
     Forthparser.pp_exceptions ();
     read_files srcs
     |> Forthparser.parse_string
     |> Ast1.of_ast0_program
-    |> Gen_msp430_dtc.generate_image
+    |> (match target with
+      | "msp430-dtc" -> Gen_msp430_dtc.generate_image
+      | "stm32-stc" -> Gen_stm32_stc.generate_image
+      | _ -> Gen_stm32_stc.generate_image)
     |> save output_file
   in Out_channel.flush stdout
 
@@ -65,7 +72,7 @@ let nemesis _logging output_file srcs =
 let cmd =
   let doc = "Nemesis" in
   let exits = Term.default_exits in
-  Term.(const nemesis $ logging $ output_file $ srcs),
+  Term.(const nemesis $ logging $ target $ output_file $ srcs),
   Term.info "nemesis" ~doc ~exits
 
 let () = Term.(eval cmd |> exit)
