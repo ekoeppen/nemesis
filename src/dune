@@ -3,6 +3,7 @@
 
 (executable
   (name nemesis)
+  (public_name nemesis)
   (libraries
     nice_parser
     core
