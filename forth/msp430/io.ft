@@ -49,6 +49,8 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
 : hex. ( n -- ) base @ swap hex <# # # # # #> type base ! ;
 : h.4  ( n -- ) hex. ;
 : h.2  ( n -- ) base @ swap hex <# # # #> type base ! ;
+: b.8  ( n -- ) base @ swap binary <# # # # # # # # # #> type base ! ;
+: b.   ( n -- ) base @ swap binary u. base ! ;
 
 : accept        ( c-addr +n -- +n'   get line from terminal )
                 over + 1- over

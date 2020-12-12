@@ -53,14 +53,27 @@ let create_info p data latest base info ram user =
   Data.append_int user header;
   Ihex.data_to_string info 0 (Stdlib.Buffer.to_bytes header)
 
-let finalize_image_data p data latest base info ram user =
-  let info_lines = create_info p data latest base info ram user in
+let rec default_vector_list n addr =
+  if n > 30 then []
+  else begin
+    let str = Printf.sprintf "02FF%0X00%02X%02X"
+      (0xc0 + n * 2) (addr land 255) (addr / 256) in
+    (":" ^ str ^ Printf.sprintf "%02X\n" (Ihex.calculate_crc str)) ::
+      default_vector_list (n + 1) addr
+  end
+
+let create_vectors p =
+  let default_handler = Ast1.find_word_or_zero p "default-handler" in
   let reset_handler = Ast1.find_word_or_zero p "reset-handler" in
   let reset_handler_str = Printf.sprintf "02FFFE00%02X%02X"
     (reset_handler land 255)
     (reset_handler / 256) in
+  (default_vector_list 0 default_handler) @ [":" ^ reset_handler_str ^
+    Printf.sprintf "%02X\n" (Ihex.calculate_crc reset_handler_str)]
+
+let finalize_image_data p data latest base info ram user =
+  let info_lines = create_info p data latest base info ram user in
+  let vector_lines = create_vectors p in
   let body_lines = Ihex.data_to_string base 0 (Stdlib.Buffer.to_bytes data) in
-  let vector_lines = [":" ^ reset_handler_str ^
-    Printf.sprintf "%02X\n" (Ihex.calculate_crc reset_handler_str)] in
   String.concat (info_lines @ body_lines @ vector_lines @ [":00000001FF\n"])
   |> Bytes.of_string

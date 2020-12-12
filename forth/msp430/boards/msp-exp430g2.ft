@@ -28,6 +28,7 @@ code reset-handler $4307 $4031 $0240 $4034 $027E $4035 $1000 $4530 end-code
 
 include ../core.ft
 
+include ../cpus/msp430g2x53/sfr.fs
 include ../cpus/msp430g2x53/wdt.fs
 include ../cpus/msp430g2x53/clock.fs
 include ../cpus/msp430g2x53/usci.fs
@@ -83,8 +84,9 @@ include ../utils.ft
                 setup-ports
                 setup-uart
                 setup-spi ;
-: led-on        %00000001 P1OUT bis! ;
-: led-off       %00000001 P1OUT bic! ;
+: +led          %00000001 P1OUT bis! ;
+: -led          %00000001 P1OUT bic! ;
+: +-led         %00000001 P1OUT xor! ;
 
 include ../../drivers/rfm69.ft
 

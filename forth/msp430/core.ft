@@ -5,10 +5,15 @@
 
 code halt       $3fff $4530 end-code
 code bye        $3fff end-code
-code wfi        $3fff end-code
+code standby    $d072 $00d8 $4530 end-code
+code stop       $d072 $00f8 $4530 end-code
+code reset      $43c2 $0121 end-code
 code docol      $4136 $1205 $4605 $4530 end-code
 code dint       $c232 $4530 end-code
 code eint       $d232 $4530 end-code
+code sr@        $8324 $4784 $0000 $4207 $4530 end-code
+code default-handler
+                $c0f1 $00f8 $0000 $1300 end-code
 
 \ Compiler and control flow
 
@@ -100,9 +105,9 @@ code 2/         $1107 $4530 end-code
 code 2*         $5707 $4530 end-code
 code cells      $5707 $4530 end-code
 code chars      $4530 end-code
-code 0          $8324 $4784 $0000 $4307 $4530 end-code
-code 1          $8324 $4784 $0000 $4317 $4530 end-code
-code 2          $8324 $4784 $0000 $4327 $4530 end-code
+\ code 0          $8324 $4784 $0000 $4307 $4530 end-code
+\ code 1          $8324 $4784 $0000 $4317 $4530 end-code
+\ code 2          $8324 $4784 $0000 $4327 $4530 end-code
 code cell       $8324 $4784 $0000 $4327 $4530 end-code
 
 code lshift     $4436 $f037 $001f $2403 $5606 $8317 $23fd $4607 $4530 end-code
