@@ -1,7 +1,7 @@
 open Ast1
 open Core
 
-module Impl (T : Target.Intf) = struct
+module Impl (T : Target.Intf) (C : Target.Conf) = struct
 
   let latest = ref 0
   let here_stack = Stack.create ()
@@ -51,6 +51,12 @@ module Impl (T : Target.Intf) = struct
         Buffer.add_char data (char_of_int (String.length s));
         Buffer.add_string data s;
         T.align data
+    | Printstring s ->
+        resolve_word dict "(s\")" data;
+        Buffer.add_char data (char_of_int (String.length s));
+        Buffer.add_string data s;
+        resolve_word dict "type" data;
+        T.align data
     | Number n -> resolve_word dict "lit" data; T.append_number n data
     | Immediate -> Data.update_char (!latest + 4) '\xfe' data
     | If ->
@@ -60,16 +66,16 @@ module Impl (T : Target.Intf) = struct
     | Else ->
         resolve_word dict "branch" data;
         T.append_placeholder_address data;
-        T.update_address (pop_here ()) ((Data.here data) + T.base) data;
+        T.update_address (pop_here ()) ((Data.here data) + C.base) data;
         push_here ((Data.here data) - T.cell_size)
-    | Then -> T.update_address (pop_here ()) ((Data.here data) + T.base) data
+    | Then -> T.update_address (pop_here ()) ((Data.here data) + C.base) data
     | Begin -> push_here (Data.here data)
     | Again ->
         resolve_word dict "branch" data;
-        T.append_address (pop_here () + T.base) data
+        T.append_address (pop_here () + C.base) data
     | Until ->
         resolve_word dict "?branch" data;
-        T.append_address (pop_here () + T.base) data
+        T.append_address (pop_here () + C.base) data
     | While ->
         resolve_word dict "?branch" data;
         push_here (Data.here data);
@@ -77,21 +83,22 @@ module Impl (T : Target.Intf) = struct
     | Repeat ->
         resolve_word dict "branch" data;
         T.update_address (pop_here ())
-        ((Data.here data) + T.base + T.cell_size) data;
-        T.append_address (pop_here () + T.base) data
+        ((Data.here data) + C.base + T.cell_size) data;
+        T.append_address (pop_here () + C.base) data
+    | Undefined s -> raise (Failure ("Undefined word " ^ s))
     | _ -> ()
 
   let add_header (word : Ast1.definition) data =
     T.align data;
     let l = Data.here data in
-    T.append_address (if !latest <> 0 then (!latest + T.base) else 0) data;
+    T.append_address (if !latest <> 0 then (!latest + C.base) else 0) data;
     latest := l;
     Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
     Buffer.add_char data '\xff';
     Buffer.add_char data (char_of_int (String.length word.name));
     Buffer.add_string data word.name;
     T.align data;
-    word.address <- (Data.here data) + T.base
+    word.address <- (Data.here data) + C.base
 
   let handle_code_word (word : Ast1.definition) data =
     add_header word data;
@@ -162,6 +169,6 @@ module Impl (T : Target.Intf) = struct
   let generate_image (p : Ast1.program) =
     let data = T.create_image_data in
     generate_program_code p data;
-    T.finalize_image_data p data !latest
+    T.finalize_image_data p data !latest C.base C.info C.ram C.user
 
 end

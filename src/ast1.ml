@@ -5,6 +5,7 @@ type word =
   | Call of string
   | Number of int
   | String of string
+  | Printstring of string
   | Immediate
   | Postpone
   | Bracket_tick
@@ -46,7 +47,8 @@ let of_word w =
   | Immediate -> "IMMEDIATE"
   | Postpone -> "POSTPONE"
   | Bracket_tick -> "[']"
-  | String s -> "s\"" ^ s ^ "\""
+  | String s -> "s\" " ^ s ^ "\""
+  | Printstring s -> ".\" " ^ s ^ "\""
   | Char -> "[CHAR]"
   | If -> "IF"
   | Else -> "ELSE"
@@ -74,8 +76,11 @@ let of_string d s =
   | "again" -> Again
   | w -> if Ast0.find d w
     then Call w
-    else begin if String.is_prefix s ~prefix:"s\""
+    else begin
+      if String.is_prefix s ~prefix:"s\""
       then String (s |> String.chop_prefix_exn ~prefix:"s\" " |> String.chop_suffix_exn ~suffix:"\"")
+      else if String.is_prefix s ~prefix:".\""
+      then Printstring (s |> String.chop_prefix_exn ~prefix:".\" " |> String.chop_suffix_exn ~suffix:"\"")
       else match to_number s with
       | Some n -> Number n
       | None -> Undefined w

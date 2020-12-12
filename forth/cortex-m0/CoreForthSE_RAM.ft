@@ -3,164 +3,153 @@
 \ -----------------------------------------------------------------------------
 \ -- Constants, variables and memory buffers
 
-$C000 constant init-cold
-$C002 constant init-latest
-$C004 constant init-dp
-$C006 constant init-vp
-
-$0200 constant ram-bottom
-$0240 constant r0
-$0280 constant s0
-$0280 constant tib
-$0080 constant tib#
-$0300 constant latest
-$0302 constant dp
-$0304 constant vp
-$0306 constant state
-$0308 constant (source)
-$030A constant source#
-$030C constant >in
-$030E constant current
-$0310 constant base
-$0312 constant hp
-
-$0400 constant ram-top
-
+$20002080 constant init-cold
+$20002084 constant init-latest
+$20002088 constant init-dp
+$2000208C constant init-vp
+$20040000 constant eval-words
+$20005000 constant dp
+$20005004 constant vp
+$20005008 constant latest
+$2000500C constant state
+$20005010 constant (source)
+$20005014 constant source#
+$20005018 constant >in
+$2000501C constant current
+$20005020 constant base
+$20005024 constant hp
+$00000080 constant tib#
+$2000FFF0 constant ram-top
+$00000020 constant bl
+$E000ED00 constant cpuid
+$E0000000 constant emulator-uart-tx
+$E0000004 constant emulator-uart-rx
+$E0000008 constant emulator-uart-sr
+$20005C00 constant s0
+$20005D00 constant r0
+$20006000 constant tib
 
 \ -----------------------------------------------------------------------------
 \ -- Machine interface
 
-code reset-handler
-                $40b2 $5a80 $0120
-                $42d2 $10fd $0057 $42d2 $10fc $0056 $43c2 $0058
-                $4307 $4034 $0400 $4031 $03c0 $4035 $c000
-                $4536 $4600 end-code
-code halt       $3fff $4530 end-code
-code bye        $3fff end-code
-code wfi        $3fff end-code
-code docol      $4136 $1205 $4605 $4530 end-code
+code halt       $E7FE $46F7 end-code
+code reset-handler $4668 $3820 $0006 $4801 $6800 $4687 $2080 $2000 end-code
+code bye        $2118 $B402 $BEAB $46F7 end-code
+code wfi        $BF30 $46F7 end-code
+code wait-key   $2182 $B402 $BEAB $46F7 end-code
+code rom-dump   $B500 $6831 $6030 $0008 $0001 $6830 $3604 $B402 $0001 $6830
+                $3604 $B402 $2180 $B402 $BEAB $BD00 end-code
 
 \ Compiler and control flow
 
-code lit        $8324 $4784 $0000 $4537 $4530 end-code
-code branch     $4525 $4530 end-code
-code ?branch    $5307 $4437 $2402 $5325 $4530 $4525 $4530 end-code
-code exit       $4135 $4530 end-code
-code execute    $4706 $4437 $4600 end-code
+code lit        $4674 $3C01 $8821 $3402 $8822 $0412 $4311 $3403 $3E04 $6030
+                $0008 $46A7 end-code
+code >branch    $1040 $4906 $0002 $12D2 $4B05 $401A $4311 $0002 $0412 $4B04
+                $401A $4311 $0008 $46F7 $F400 $F800 $03FF $0000 $0000 $7FFF
+                $46F7 end-code
+code branch     $4672 $3A01 $8811 $8852 $0412 $4311 $468F end-code
+code ?branch    $0001 $6830 $3604 $2900 $D002 $4671 $3104 $468F $4672 $3A01
+                $8811 $8852 $0412 $4311 $468F end-code
+code exit       $BD00 end-code
 
 \ -----------------------------------------------------------------------------
 \ -- Stack operations
 
-code dup        $8324 $4784 $0000 $4530 end-code
-code drop       $4437 $4530 end-code
-code swap       $4426 $4784 $0000 $4607 $4530 end-code
-code over       $4426 $8324 $4784 $0000 $4607 $4530 end-code
-code rot        $4426 $4784 $0000 $4417 $0002 $4684 $0002 $4530 end-code
-code ?dup       $9307 $2001 $4530 $8324 $4784 $0000 $4530 end-code
-code nip        $5324 $4530 end-code
+code dup        $3E04 $6030 $46F7 end-code
+code drop       $6830 $3604 $46F7 end-code
+code swap       $6831 $6030 $0008 $46F7 end-code
+code over       $3E04 $6030 $6870 $46F7 end-code
+code rot        $6873 $6832 $0001 $6072 $6031 $0018 $46F7 end-code
+code ?dup       $2800 $D001 $3E04 $6030 $46F7 end-code
+code nip        $3604 $46F7 end-code
+code tuck       $6831 $6030 $3E04 $6031 $46F7 end-code
+code 2dup       $6831 $3E08 $6070 $6031 $46F7 end-code
+code 2swap      $68B3 $6872 $6831 $60B1 $6070 $6033 $0010 $46F7 end-code
 
-code >r         $1207 $4437 $4530 end-code
-code r>         $8324 $4784 $0000 $4137 $4530 end-code
-code r@         $8324 $4784 $0000 $4127 $4530 end-code
-code rdrop      $5321 $4530 end-code
-
-code sp@        $8324 $4784 $0000 $4407 $4530 end-code
-code rp@        $8324 $4784 $0000 $4107 $4530 end-code
-code sp!        $4704 $4437 $4530 end-code
-code rp!        $4701 $4437 $4530 end-code
-
-: 2dup          over over ;
-: tuck          swap over ;
 : -rot          rot rot ;
 : 2drop         drop drop ;
-: 2swap         rot >r rot r> ;
+
+code >r         $0001 $6830 $3604 $B402 $46F7 end-code
+code r>         $BC02 $3E04 $6030 $0008 $46F7 end-code
+code r@         $9900 $3E04 $6030 $0008 $46F7 end-code
+code rdrop      $BC10 $46F7 end-code
+
+code sp@        $4631 $3E04 $6030 $0008 $46F7 $46F7 end-code
+code rp@        $4669 $3E04 $6030 $0008 $46F7 $46F7 end-code
+code sp!        $4606 $4631 $3904 $6808 $46F7 $46F7 end-code
+code rp!        $0001 $6830 $3604 $468D $46F7 $46F7 end-code
 
 \ -----------------------------------------------------------------------------
 \ -- Memory operations
 
-code c@         $4767 $4530 end-code
-code c!         $4436 $46c7 $0000 $4437 $4530 end-code
-code @          $4727 $4530 end-code
-code !          $44b7 $0000 $4437 $4530 end-code
+code c@         $7800 $46F7 end-code
+code c!         $6831 $7001 $6870 $3608 $46F7 end-code
+code h@         $8800 $46F7 end-code
+code h!         $6831 $8001 $6870 $3608 $46F7 end-code
+code @          $6800 $46F7 end-code
+code !          $0002 $6830 $3604 $0001 $6830 $3604 $8011 $3202 $0C09 $8011 $46F7 end-code
 
 \ -----------------------------------------------------------------------------
 \ -- Logical operators
 
-code and        $f437 $4530 end-code
-code or         $d437 $4530 end-code
-code invert     $e337 $4530 end-code
-code not        $8317 $7707 $4530 end-code
-code xor        $e437 $4530 end-code
-code aligned    $5317 $c317 $4530 end-code
+code and        $6831 $3604 $4008 $46F7 end-code
+code or         $6831 $3604 $4308 $46F7 end-code
+code invert     $43C0 $46F7 end-code
+code not        $43C0 $46F7 end-code
+code xor        $6831 $3604 $4048 $46F7 end-code
+code aligned    $3003 $2103 $43C9 $4008 $46F7 end-code
 
-code bis!       $3fff $4530 end-code
-code bic!       $3fff $4530 end-code
-code xor!       $3fff $4530 end-code
-code bis        $3fff $4530 end-code
-code bic        $3fff $4530 end-code
-code bit@       $3fff $4530 end-code
+code bis!       $6831 $6802 $4311 $6001 $6870 $3608 $46F7 end-code
+code bic!       $6831 $6802 $438A $6002 $6870 $3608 $46F7 end-code
+code xor!       $6831 $6802 $404A $6002 $6870 $3608 $46F7 end-code
+code bis        $6831 $3604 $4308 $46F7 end-code
+code bic        $6831 $4381 $4608 $3604 $46F7 end-code
+code bit@       $6831 $3604 $6802 $2000 $4011 $D000 $43C0 $46F7 end-code
 
 \ -----------------------------------------------------------------------------
 \ -- Arithmetic
 
-code +          $5437 $4530 end-code
-code -          $4436 $8706 $4607 $4530 end-code
-code um*        $442a $430c $430d $430b $4316 $b607 $2402 $5a0c
-                $6b0d $5a0a $6b0b $5606 $2bf8 $4c84 $0000 $4d07
-                $4530 end-code
-code u/mod      $430b $442a $430c $4036 $0011 $970b $2801 $870b $6c0c
-                $2c09 $8316 $2406 $5a0a $6b0b $2bf6 $870b $d312
-                $3ff6 $c312 $4b84 $0000 $4c07 $4530 end-code
-code um/mod     $443b $442a $430c $4036 $0011 $970b $2801 $870b $6c0c
-                $2c09 $8316 $2406 $5a0a $6b0b $2bf6 $870b $d312
-                $3ff6 $c312 $4b84 $0000 $4c07 $4530 end-code
-code abs        $9307 $3402 $e337 $5317 $4530 end-code
+code +          $6831 $3604 $1840 $46F7 end-code
+code -          $6831 $3604 $1A08 $46F7 end-code
+code *          $6831 $3604 $4348 $46F7 end-code
+code u/mod      $6831 $0002 $4614 $460B $085B $429C $D801 $0064 $E7FB $2300 $18DB $42A1 $D301 $3301 $1B09 $0864 $4294 $D2F7 $6031 $0018 $46F7 end-code
+code abs        $2800 $DA01 $43C0 $3001 $46F7 end-code
 
-code 1+         $5317 $4530 end-code
-code 2+         $5327 $4530 end-code
-code 4+         $5227 $4530 end-code
-code 1-         $8317 $4530 end-code
-code 2-         $8327 $4530 end-code
-code 4-         $8227 $4530 end-code
-code char+      $5317 $4530 end-code
-code cell+      $5327 $4530 end-code
-code char-      $8317 $4530 end-code
-code cell-      $8327 $4530 end-code
-code 2/         $1107 $4530 end-code
-code 2*         $5707 $4530 end-code
-code cells      $5707 $4530 end-code
-code chars      $4530 end-code
-code 1          $8324 $4784 $0000 $4317 $4530 end-code
-code 2          $8324 $4784 $0000 $4327 $4530 end-code
-code cell       $8324 $4784 $0000 $4327 $4530 end-code
+code 1+         $3001 $46F7 end-code
+code 2+         $3002 $46F7 end-code
+code 4+         $3004 $46F7 end-code
+code 1-         $3801 $46F7 end-code
+code 2-         $3802 $46F7 end-code
+code 4-         $3804 $46F7 end-code
+code char+      $3001 $46F7 end-code
+code cell+      $3004 $46F7 end-code
+code char-      $3801 $46F7 end-code
+code cell-      $3804 $46F7 end-code
+code 2/         $1040 $46F7 end-code
+code 2*         $1800 $46F7 end-code
 
-code lshift     $4436 $f037 $001f $2403 $5606 $8317 $23fd $4607 $4530 end-code
-code rshift     $4436 $f037 $001f $2404 $c312 $1006 $8317 $23fc $4607 $4530 end-code
-code shl        $3fff $4530 end-code
-code shr        $3fff $4530 end-code
+code lshift     $6831 $3604 $4081 $0008 $46F7 end-code
+code rshift     $0000 $6831 $3604 $40C1 $0008 $46F7 end-code
+code shl        $0040 $46F7 end-code
+code shr        $0840 $46F7 end-code
 
-code 0=         $8317 $7707 $4530 end-code
-code 0<>        $8317 $7707 $e337 $4530 end-code
-code 0<         $9307 $3402 $4337 $4530 $4307 $4530 end-code
-code 0<=        $9307 $2403 $2802 $4307 $4530 $4337 $4530 end-code
-code 0>         $9317 $3402 $4307 $4530 $4337 $4530 end-code
-code 0>=        $9307 $3402 $4307 $4530 $4337 $4530 end-code
-code =          $4436 $8706 $2402 $4307 $4530 $4337 $4530 end-code
-code <          $4436 $8706 $3402 $4337 $4530 $4307 $4530 end-code
-code u<         $4436 $8706 $2802 $4307 $4530 $4337 $4530 end-code
-code m+         $5784 $0002 $6384 $0000 $4437 $4530 end-code
-
-: s>d           dup 0< ;
-: dnegate       swap invert swap invert 1 m+ ;
-: ?dnegate      0< if dnegate then ;
-: m*            2dup xor >r swap abs swap abs um* r> ?dnegate ;
-: u*            um* drop ;
-: *             m* drop ;
+code 0=         $2300 $2800 $D100 $43DB $0018 $46F7 end-code
+code 0<>        $2300 $2800 $D000 $43DB $0018 $46F7 end-code
+code 0<         $2300 $2800 $DA00 $43DB $0018 $46F7 end-code
+code 0<=        $2300 $2800 $DC00 $43DB $0018 $46F7 end-code
+code 0>         $2300 $2800 $DD00 $43DB $0018 $46F7 end-code
+code 0>=        $2300 $2800 $DB00 $43DB $0018 $46F7 end-code
+code =          $6831 $3604 $2300 $4288 $D100 $43DB $0018 $46F7 end-code
+code <          $6831 $3604 $2300 $4281 $DA00 $43DB $0018 $46F7 end-code
+code u<         $6831 $3604 $2300 $4281 $D200 $43DB $0018 $46F7 end-code
 
 : 2c@           c@ swap c@ swap ;
 : +!            dup @ rot + swap ! ;
 : -!            dup @ rot - swap ! ;
 
+: cell          4 ;
+: chars         ;
+: cells         2* 2* ;
 : /             u/mod nip ;
 : umod          u/mod drop ;
 : mod           u/mod drop ;
@@ -206,12 +195,14 @@ code m+         $5784 $0002 $6384 $0000 $4437 $4530 end-code
 : allot         here + dp ! ;
 : org           dp ! ;
 : ,             here ! cell allot ;
+: h,            here h! 2 allot ;
 : c,            here c! 1 allot ;
 
 : [             false state ! ; immediate
 : ]             true state ! ;
-: ,call         , ;
+: ,call         here cell+ - >branch , ;
 : literal       postpone lit , ; immediate
+: execute       1+ >r ;
 
 \ -----------------------------------------------------------------------------
 \ -- Control flow
@@ -230,7 +221,7 @@ code m+         $5784 $0002 $6384 $0000 $4437 $4530 end-code
 : i             r> r> r@ -rot >r >r ;
 : j             rp@ 4 cells + @ ;
 : unloop        r> rdrop rdrop >r ;
-: (loop)        r> r> r> 2dup < if 2drop true else >r >r false then
+: (loop)        r> r> r> 1+ 2dup < if 2drop true else >r >r false then
                 swap >r ;
 : do            postpone (do) here ; immediate
 : loop          postpone (loop)
@@ -247,10 +238,8 @@ code m+         $5784 $0002 $6384 $0000 $4437 $4530 end-code
 \ -----------------------------------------------------------------------------
 \ -- Input handling
 
-$20 constant bl
-
-: pad           vp @ $10 + ;
-: wp            pad $40 + ;
+: pad           vp @ $80 2* 2* + ;
+: wp            pad $80 + ;
 : source@       (source) @ >in @ + c@ ;
 : >>source      1 >in +! ;
 : in-source?    >in @ source# @ < ;
@@ -264,9 +253,13 @@ $20 constant bl
 \ -----------------------------------------------------------------------------
 \ -- Input/Output
 
-code emit       $b3e2 $0003 $27fd $47c2 $0067 $4437 $4530 end-code
-code key        $b3d2 $0003 $27fd $8324 $4784 $0000 $4257 $0066 $4530 end-code
-code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-code
+code emit       $4900 $468F $FFFF $FFFF end-code
+code key        $4900 $468F $FFFF $FFFF end-code
+code key?       $4900 $468F $FFFF $FFFF end-code
+
+: emu-emit      emulator-uart-tx ! ;
+: emu-key       wait-key emulator-uart-rx @ ;
+: emu-key?      emulator-uart-sr @ ;
 
 : count         dup 1+ swap c@ ;
 : cr            #13 emit #10 emit ;
@@ -291,10 +284,6 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
 : decimal       #10 base ! ;
 : hex           #16 base ! ;
 
-: hex. ( n -- ) base @ swap hex <# # # # # #> type base ! ;
-: h.4  ( n -- ) hex. ;
-: h.2  ( n -- ) base @ swap hex <# # # #> type base ! ;
-
 : accept        ( c-addr +n -- +n'   get line from terminal )
                 over + 1- over
                 begin key
@@ -306,8 +295,10 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
                 repeat
                 drop nip swap - ;
 
-: depth         s0 sp@ - 2/ 1- 1- ;
-: .s            sp@ begin dup s0 cell- < while dup @ u. cell+ repeat drop ;
+: depth         s0 sp@ - 2/ 2/ 1- ;
+: .s            depth if dup u.
+                  sp@ begin dup s0 cell- < while dup @ u. cell+ repeat drop
+                then ;
 : .r            rp@ begin dup r0 cell- < while dup @ u. cell+ repeat drop ;
 
 \ -----------------------------------------------------------------------------
@@ -318,8 +309,12 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
                 repeat
                 rdrop 2drop ;
 : move          >r begin r@ 0> while
-                  over @ over ! cell+ swap cell+ swap
-                  r> cell- >r
+                  over @ over ! 4+ swap 4+ swap
+                  r> 4- >r
+                repeat rdrop 2drop ;
+: hmove         >r begin r@ 0> while
+                  over h@ over h! 2+ swap 2+ swap
+                  r> 2- >r
                 repeat rdrop 2drop ;
 : cmove         >r begin r@ 0> while
                   over c@ over c! 1+ swap 1+ swap
@@ -330,9 +325,9 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
 \ -- Dictionary
 
 : align         here aligned org ;
-: imove         move ;
-: link>name     4 + ;
-: link>flags    2 + ;
+: imove         hmove ;
+: link>name     6 + ;
+: link>flags    4 + ;
 : >body         $10 + ;
 : link>         link>name dup c@ + 1+ aligned ;
 : ,link         , ;
@@ -355,8 +350,8 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
                 bl word
                 dup dup c@ 1+ here swap imove
                 c@ 1+ allot align ;
-: ,enter        $12b0 , ['] docol , ;
-: ,exit         ['] exit , ;
+: ,enter        $B500 h, ;
+: ,exit         $BD00 h, ;
 : immediate     $FE latest @ link>flags c! ;
 : hide          latest @ current ! ;
 : reveal        0 current ! ;
@@ -368,16 +363,17 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
 : ;             ,exit reveal [ ; immediate
 : :noname       align latest @ here latest ! ]  , here ; immediate
 
-: docon         ;
-: dodata        ;
-: dodefer       ;
+: docon         $4902 h, $3E04 h, $6030 h, $0008 h, $46F7 h, ;
+: dodata        $4679 h, $310C h, $3E04 h, $6030 h, $0008 h, $46F7 h, ;
+: dodefer       $4900 h, $468F h, ;
 : create        <builds dodata here , ;
 : constant      <builds docon align , ;
 : variable      <builds docon align vp dup @ dup , cell+ swap ! ;
-: defer         <builds $FFFF , 6 allot ; immediate
-: is            ' $FFFF over ! cell+ ! ; immediate
+: defer         <builds $46F7 h, 6 allot ; immediate
+: defer!        swap 1+ swap cell+ ! ;
+: is            ' $468F4900 over ! defer! ; immediate
 
-: (does>)       here r> 1- latest @ link> #10 + org $B500 , ,call org ;
+: (does>)       here r> 1- latest @ link> #10 + org $B500 h, ,call org ;
 : does>         postpone (does>) ; immediate
 : recurse       latest @ link> ,call ; immediate
 : [char]        char postpone literal ; immediate
@@ -405,48 +401,11 @@ code key?       $8324 $4784 $0000 $b3d2 $0003 $2002 $4307 $4530 $4337 $4530 end-
                 ?sign >r >number if rdrop 2drop drop 0
                 else 2swap 2drop drop r> if negate then
                 true then r> base ! ;
-: (s")          r> count 2dup + aligned >r ;
+: (s")          r> 1- count 2dup + aligned 1+ >r ;
 : s"            postpone (s")
                 [char] " word dup dup c@ 1+ here swap imove
                 c@ 1+ allot align ; immediate
 \ : ."            postpone s" postpone type ; immediate
-
-\ -----------------------------------------------------------------------------
-\ -- High level hardware interface
-
-$20 constant P1IN
-$21 constant P1OUT
-$22 constant P1DIR
-$23 constant P1IFG
-$24 constant P1IES
-$25 constant P1IE
-$26 constant P1SEL
-$27 constant P1REN
-$41 constant P1SEL2
-
-$60 constant UCA0CTL0
-$61 constant UCA0CTL1
-$62 constant UCA0BR0
-$63 constant UCA0BR1
-$64 constant UCA0MCTL
-$65 constant UCA0STAT
-$66 constant UCA0RXBUF
-$67 constant UCA0TXBUF
-
-: setup-ports   %00001000 P1OUT c!
-                %00001000 P1REN c!
-                %01000101 P1DIR c!
-                %00000110 dup P1SEL c! P1SEL2 c! ;
-
-: setup-uart    %00000001 UCA0CTL1 c!
-                %00000000 UCA0CTL0 c!
-                %10000001 UCA0CTL1 c!
-                #65 UCA0BR0 c!   #3 UCA0BR1 c!
-                %00000100 UCA0MCTL c!
-                %10000000 UCA0CTL1 c!
-                $1000 begin 1- dup 0= until drop ;
-
-: setup-hw      setup-ports   setup-uart ;
 
 \ -----------------------------------------------------------------------------
 \ -- Interpreter
@@ -469,12 +428,21 @@ $67 constant UCA0TXBUF
                     else count type [char] ? emit cr then  \ error
                   then
                 repeat drop ;
-: evaluate      source# !  (source) ! 0 >in !  (interpret) ;
-: quit          \ r0 rp! 0 state !    \ reset stacks, state
-                0 state !
+: evaluate      source >r >r >in @ >r
+                source# !  (source) ! 0 >in !  (interpret)
+                r> >in ! r> source# ! r> (source) ! ;
+: run-commands  eval-words begin
+                  dup c@ $FF <> while
+                  dup begin dup c@ bl >= while 1+ repeat
+                  dup >r over - evaluate
+                  r> begin dup c@ dup bl < swap $FF <> and while 1+ repeat
+                repeat
+                drop
+                ;
+: quit          r0 rp! 0 state !    \ reset stacks, state
                 setup-pointers
-                setup-hw
-                s" 430Forth XXXXXXXX ready" type cr
+                run-commands
+                s" CoreForth SE/Meta XXXXXXXX ready" type cr
                 begin
                   xon
                   tib dup tib# accept space
@@ -483,9 +451,11 @@ $67 constant UCA0TXBUF
                   state @ 0= if space prompt then
                 again ;
 
-: abort         \ s0 sp! #16 base ! quit ;
-                #16 base ! quit ;
-: cold          abort ;
+: abort         s0 sp! #16 base ! quit ;
+: cold          ['] emu-emit ['] emit defer!
+                ['] emu-key ['] key defer!
+                ['] emu-key? ['] key? defer!
+                abort ;
 
 \ -----------------------------------------------------------------------------
 \ -- Utilities
@@ -497,10 +467,20 @@ $67 constant UCA0TXBUF
                   dup link> u. dup link>name count type cr
                 repeat ;
 
+: hex. ( n -- ) base @ swap hex <# # # # # # # # # #> type base ! ;
+: h.4  ( n -- ) base @ swap hex <# # # # # #> type base ! ;
+: h.2  ( n -- ) base @ swap hex <# # # #> type base ! ;
+
 : dump          >r dup cr hex. space begin
                 r@ while
                   dup c@ h.2 space 1+
                   r> 1- dup $10 mod 0= over and if cr over hex. space then >r
+                repeat rdrop drop ;
+
+: dumph         >r dup cr hex. space begin
+                r@ while
+                  dup h@ h.4 space 2+
+                  r> 1- dup $8 mod 0= over and if cr over hex. space then >r
                 repeat rdrop drop ;
 
 : dumpw         >r dup cr hex. space begin

@@ -1,0 +1,6 @@
+: rf! ( b reg -- ) $80 or +spi >spi >spi -spi ;
+: rf@ ( reg -- b ) +spi >spi spi> -spi ;
+
+: setup-rf ;
+
+: rf. ( -- ) ;

@@ -1,10 +1,6 @@
 open Core
 
-let cell_size: int = 2
-let base: int = 0xc000
-
-let ram = 0x0296
-let stack = 0x0380
+let cell_size = 2
 
 let align data =
   Data.align cell_size data
@@ -39,33 +35,32 @@ let append_code code data =
   Data.append_short code data
 
 let create_image_data =
-  let data = Buffer.create (16 * 1024) in
-  Buffer.add_bytes data (Bytes.make 0x10 '\xff');
-  data
+  Buffer.create (16 * 1024)
 
-let create_header p data latest =
+let create_info p data latest base info ram user =
   let cold = Ast1.find_word_or_zero p "cold" in
-  let header = Buffer.create 0x10 in
+  let header = Buffer.create ((4 * 2 + 4 * 1) * 2) in
+  let dp = (((Data.here data) + base) + 512) land 0xFE00 in
   Data.append_short cold header;
   Data.append_short (latest + base) header;
-  Data.append_short ((Data.here data) + base) header;
+  Data.append_short dp header;
   Data.append_short ram header;
-  Data.append_int 0 header;
-  Data.append_int 0 header;
-  header
+  Data.append_int user header;
+  Data.append_short cold header;
+  Data.append_short (latest + base) header;
+  Data.append_short dp header;
+  Data.append_short ram header;
+  Data.append_int user header;
+  Ihex.data_to_string info 0 (Stdlib.Buffer.to_bytes header)
 
-let finalize_image_data p data latest =
-  let header = create_header p data latest in
-  let final = Bytes.create (Data.here data) in
-  Buffer.blit ~src:header ~src_pos:0 ~dst:final ~dst_pos:0 ~len:0x10;
-  Buffer.blit ~src:data ~src_pos:0x10 ~dst:final
-    ~dst_pos:0x10 ~len:((Data.here data) - 0x10);
+let finalize_image_data p data latest base info ram user =
+  let info_lines = create_info p data latest base info ram user in
   let reset_handler = Ast1.find_word_or_zero p "reset-handler" in
   let reset_handler_str = Printf.sprintf "02FFFE00%02X%02X"
     (reset_handler land 255)
     (reset_handler / 256) in
-  let body_lines = Ihex.data_to_string 0xc000 0 final in
+  let body_lines = Ihex.data_to_string base 0 (Stdlib.Buffer.to_bytes data) in
   let vector_lines = [":" ^ reset_handler_str ^
     Printf.sprintf "%02X\n" (Ihex.calculate_crc reset_handler_str)] in
-  String.concat (body_lines @ vector_lines @ [":00000001FF\n"])
+  String.concat (info_lines @ body_lines @ vector_lines @ [":00000001FF\n"])
   |> Bytes.of_string

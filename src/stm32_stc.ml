@@ -1,9 +1,6 @@
 open Core
 
 let cell_size: int = 4
-let base: int = 0x08000000
-
-let ram = 0x20000080
 let stack = 0x20004000
 
 let align data =
@@ -51,7 +48,7 @@ let create_image_data =
   Buffer.add_bytes data (Bytes.make 0x90 '\xff');
   data
 
-let finalize_image_data p data latest =
+let finalize_image_data p data latest base _info ram _user =
   let cold = Ast1.find_word_or_zero p "cold" in
   let reset_handler = Ast1.find_word_or_zero p "reset-handler" in
   let header = Buffer.create 0x90 in

@@ -7,8 +7,10 @@
 %token END_CODE
 %token CONSTANT
 %token SQUOTE_DEF
+%token DOTQUOTE_DEF
 %token <string> WORD
 %token <string> STRING
+%token <string> PRINT_STRING
 
 (* start symbol *)
 %start <Ast0.program> program
@@ -17,9 +19,11 @@
 
 definition:
   | value = WORD; CONSTANT; name = WORD
-    { { name = name; words = [value] ; immediate = true ; code = true; constant = true } }
+    { { name = name; words = [value] ; immediate = false ; code = true; constant = true } }
   | SQUOTE_DEF; words = list(content); SEMICOLON IMMEDIATE
     { { name = "s\""; words = words ; immediate = true ; code = false; constant = false } }
+  | DOTQUOTE_DEF; words = list(content); SEMICOLON IMMEDIATE
+    { { name = ".\""; words = words ; immediate = true ; code = false; constant = false } }
   | COLON; IMMEDIATE; words = list(content); SEMICOLON
     { { name = "immediate"; words = words ; immediate = false ; code = false; constant = false } }
   | COLON; COLON; words = list(content); SEMICOLON
@@ -39,6 +43,7 @@ definition:
 content:
   | v = WORD { v }
   | v = STRING { v }
+  | v = PRINT_STRING { v }
   ;
 
 program:

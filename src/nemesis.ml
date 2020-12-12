@@ -7,9 +7,6 @@ include Hexdump.Of_indexable (struct
   let get = Bytes.get
 end)
 
-module Gen_stm32_stc = Gen.Impl(Stm32_stc)
-module Gen_msp430_dtc = Gen.Impl(Msp430_dtc)
-
 let save output_file data =
   let f = Out_channel.create output_file in
   Out_channel.output f ~buf:data ~len:(Bytes.length data) ~pos:0;
@@ -47,6 +44,22 @@ let target =
   let doc = "Target. One of stm32-stc or msp430-dtc." in
   Arg.(value & opt string "stm32-stc" & info ["t"] ~docv:"TARGET" ~doc)
 
+let rom_base =
+  let doc = "ROM base address. 0x08000000 for STM32 targets, 0xC000 for MSP430 targets." in
+  Arg.(value & opt int 0x08000000 & info ["rom"] ~docv:"ROM_BASE" ~doc)
+
+let info_base =
+  let doc = "Information memory base address. 0x1000 for MSP430 targets." in
+  Arg.(value & opt int 0x1000 & info ["info"] ~docv:"ROM_BASE" ~doc)
+
+let user_data =
+  let doc = "32 bit user data." in
+  Arg.(value & opt int 0 & info ["user"] ~docv:"ROM_BASE" ~doc)
+
+let ram_base =
+  let doc = "RAM base address. 0x20000080 for STM32 targets, 0x0200 for MSP430 targets." in
+  Arg.(value & opt int 0x20000080 & info ["ram"] ~docv:"RAM_BASE" ~doc)
+
 let srcs =
   let doc = "Source file(s)." in
   Arg.(non_empty & pos_all file [] & info [] ~docv:"SOURCE" ~doc)
@@ -55,7 +68,16 @@ let logging =
   let env = Arg.env_var "NEMESIS_VERBOSITY" in
   Term.(const setup_log $ Fmt_cli.style_renderer () $ Logs_cli.level ~env ())
 
-let nemesis _logging target output_file srcs =
+let nemesis _logging target rom_base info_base ram_base user_data
+  output_file srcs =
+  let module Conf = struct
+    let base = rom_base
+    let info = info_base
+    let ram = ram_base
+    let user = user_data
+  end in
+  let module Gen_stm32_stc = Gen.Impl(Stm32_stc)(Conf) in
+  let module Gen_msp430_dtc = Gen.Impl(Msp430_dtc)(Conf) in
   let _: bytes =
     Forthparser.pp_exceptions ();
     read_files srcs
@@ -72,7 +94,8 @@ let nemesis _logging target output_file srcs =
 let cmd =
   let doc = "Nemesis" in
   let exits = Term.default_exits in
-  Term.(const nemesis $ logging $ target $ output_file $ srcs),
+  Term.(const nemesis $ logging $ target $ rom_base $ info_base $ ram_base $
+    user_data $ output_file $ srcs),
   Term.info "nemesis" ~doc ~exits
 
 let () = Term.(eval cmd |> exit)

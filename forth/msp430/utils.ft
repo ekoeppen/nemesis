@@ -1,0 +1,23 @@
+\ vim:ft=forth:ts=2:sw=2:expandtab:foldmethod=marker:foldmarker=\\\ --\ ,\\\ ---:
+
+\ -----------------------------------------------------------------------------
+\ -- Utilities
+
+: words         latest begin @ ?dup while
+                  dup link>name count type space
+                repeat ;
+: list          latest begin @ ?dup while
+                  dup link> u. dup link>name count type cr
+                repeat ;
+
+: dump          >r dup cr hex. space begin
+                r@ while
+                  dup c@ h.2 space 1+
+                  r> 1- dup $10 mod 0= over and if cr over hex. space then >r
+                repeat rdrop drop ;
+
+: dumpw         >r dup cr hex. space begin
+                r@ while
+                  dup @ hex. space cell+
+                  r> 1- dup $4 mod 0= over and if cr over hex. space then >r
+                repeat rdrop drop ;

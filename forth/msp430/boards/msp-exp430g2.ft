@@ -1,0 +1,91 @@
+$1000 constant init-cold
+$1002 constant init-latest
+$1004 constant init-dp
+$1006 constant init-vp
+$1008 constant user-low
+$100A constant user-high
+$100C constant save-init
+
+$0200 constant ram-bottom
+$0240 constant r0
+$027E constant s0
+$0280 constant tib
+$0080 constant tib#
+$0300 constant latest
+$0302 constant dp
+$0304 constant vp
+$0306 constant state
+$0308 constant (source)
+$030A constant source#
+$030C constant >in
+$030E constant current
+$0310 constant base
+$0312 constant hp
+
+$0400 constant ram-top
+
+code reset-handler $4307 $4031 $0240 $4034 $027E $4035 $1000 $4530 end-code
+
+include ../core.ft
+
+include ../cpus/msp430g2x53/wdt.fs
+include ../cpus/msp430g2x53/clock.fs
+include ../cpus/msp430g2x53/usci.fs
+include ../cpus/msp430g2x53/flash.fs
+include ../cpus/msp430g2x53/ports.fs
+include ../cpus/msp430g2x53/tlv.fs
+
+include ../io.ft
+include ../compiler.ft
+include ../utils.ft
+
+: (set-speed)   ( caldco calbc -- )
+                c@ BCSCTL1 c!   c@ DCOCTL c!   0 BCSCTL2 c! ;
+: set-speed-16mhz   CALDCO_16MHZ CALBC1_16MHZ (set-speed) ;
+: set-speed-12mhz   CALDCO_12MHZ CALBC1_12MHZ (set-speed) ;
+: set-speed-8mhz   CALDCO_8MHZ CALBC1_8MHZ (set-speed) ;
+: set-speed-1mhz   CALDCO_1MHZ CALBC1_1MHZ (set-speed) ;
+
+: setup-ports   %00001000 P1OUT c!
+                %00001000 P1REN c!
+                %10100101 P1DIR c!
+                %11100110 dup P1SEL c! P1SEL2 c!
+                %00000010 P2DIR c! ;
+
+: setup-uart    %00000001 UCA0CTL1 c!
+                %00000000 UCA0CTL0 c!
+                %10000000 UCA0CTL1 bis!
+                #65 UCA0BR0 c!   #3 UCA0BR1 c!
+                %00000100 UCA0MCTL c!
+                %00000001 UCA0CTL1 bic!
+                $1000 begin 1- dup 0= until drop ;
+
+: +spi          %00000010 P2OUT bic! ;
+: -spi          %00000010 P2OUT bis! ;
+
+: setup-spi     -spi
+                %00000001 UCB0CTL1 c!
+                %10101001 UCB0CTL0 c!         \ set SPI mode, master, sync
+                %10000000 UCB0CTL1 bis!       \ clock = SMCLK
+                8 UCB0BR0 c! 0 UCB0BR1 c!     \ prescaler 1x
+                %00000001 UCB0CTl1 bic! ;     \ enable module
+
+: spi.          UCB0CTL0 8 dump ;
+: >spi>         ( c -- c )
+                begin %00001000 $03 bit@ until UCB0TXBUF c!
+                begin %00000100 $03 bit@ until UCB0RXBUF c@ ;
+: >spi          >spi> drop ;
+: spi>          $FF >spi> ;
+
+: setup-hw      disable-wdt
+                set-speed-8mhz
+                #16 set-flash-clk
+                setup-ports
+                setup-uart
+                setup-spi ;
+: led-on        %00000001 P1OUT bis! ;
+: led-off       %00000001 P1OUT bic! ;
+
+include ../../drivers/rfm69.ft
+
+: cold          setup-hw abort ;

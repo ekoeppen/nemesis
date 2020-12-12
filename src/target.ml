@@ -4,8 +4,6 @@ module type Intf = sig
 
   val cell_size: int
 
-  val base: int
-
   val align: Buffer.t -> unit
 
   val add_enter: int -> Buffer.t -> unit
@@ -28,6 +26,16 @@ module type Intf = sig
 
   val create_image_data: Buffer.t
 
-  val finalize_image_data: Ast1.definition list -> Buffer.t -> int -> bytes
+  val finalize_image_data:
+    Ast1.definition list -> Buffer.t -> int -> int -> int -> int -> int -> bytes
+
+end
+
+module type Conf = sig
+
+  val base: int
+  val info: int
+  val ram: int
+  val user: int
 
 end

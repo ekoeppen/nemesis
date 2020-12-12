@@ -21,6 +21,7 @@ rule next_token = parse
   | '\\' { line_comment lexbuf; next_token lexbuf }
   | '(' { comment lexbuf; next_token lexbuf }
   | "s\" " [ ^ '"' ]+ "\"" { STRING (Lexing.lexeme lexbuf) }
+  | ".\" " [ ^ '"' ]+ "\"" { PRINT_STRING (Lexing.lexeme lexbuf) }
 
   (* YOUR TOKENS HERE... *)
   | ':' { COLON }
@@ -30,6 +31,7 @@ rule next_token = parse
   | "code" { CODE }
   | "end-code" { END_CODE }
   | ": s\"" { SQUOTE_DEF }
+  | ": .\"" { DOTQUOTE_DEF }
 
   (* lex identifiers last, so keywords are not lexed as identifiers *)
   | ident as word { WORD word }
