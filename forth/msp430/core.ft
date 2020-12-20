@@ -7,8 +7,8 @@ code halt       $3fff $4530 end-code
 code bye        $3fff end-code
 code standby    $d072 $00d8 $4530 end-code
 code stop       $d072 $00f8 $4530 end-code
-code reset      $43c2 $0121 end-code
-code docol      $4136 $1205 $4605 $4530 end-code
+code reset      $4382 $0120 end-code
+
 code dint       $c232 $4530 end-code
 code eint       $d232 $4530 end-code
 code sr@        $8324 $4784 $0000 $4207 $4530 end-code
@@ -16,6 +16,10 @@ code default-handler
                 $c0f1 $00f8 $0000 $1300 end-code
 
 \ Compiler and control flow
+
+code docol      $4136 $1205 $4605 $4530 end-code
+code dovar      $8324 $4784 $0000 $4137 $4530 end-code
+code docon      $8324 $4784 $0000 $4137 $4727 $4530 end-code
 
 code lit        $8324 $4784 $0000 $4537 $4530 end-code
 code branch     $4525 $4530 end-code

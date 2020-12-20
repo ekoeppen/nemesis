@@ -28,10 +28,10 @@
                 here swap ! ; immediate
 
 : (do)          r> -rot >r >r >r ;
-: i             r> r> r@ -rot >r >r ;
-: j             rp@ 4 cells + @ ;
+: i             r> r@ swap >r ;
+: j             r> r> r@ -rot >r >r ;
 : unloop        r> rdrop rdrop >r ;
-: (loop)        r> r> r> 2dup < if 2drop true else >r 1- >r false then
+: (loop)        r> r> r> 2dup <= if 2drop true else >r 1- >r false then
                 swap >r ;
 : do            postpone (do) here ; immediate
 : loop          postpone (loop)
@@ -62,12 +62,14 @@
 \ -----------------------------------------------------------------------------
 \ -- Compiler
 
-: <builds       align   here latest dup @ ,link  2 allot !
-                bl word
-                dup dup c@ 1+ here swap imove
-                c@ 1+ allot align ;
-: ,enter        $12b0 , ['] docol , ;
+: (,action)     -2 cells allot $12b0 , ; \ here at CFA
+: ,enter        (,action) ['] docol , ;
+: ,docon        (,action) ['] docon , ;
+: ,dovar        (,action) ['] dovar , ;
 : ,exit         ['] exit , ;
+
+code dodoes     $8324 $4784 $0000 $4137 $4727 $4530 end-code
+
 : immediate     $FE latest @ link>flags c! ;
 : hide          latest @ current ! ;
 : reveal        0 current ! ;
@@ -75,21 +77,31 @@
                 else ,call then ; immediate
 : [']           ' postpone literal ; immediate
 
+: (;code)       r> $12b0 latest @ link> tuck ! cell+ ! ;
+: ;code         postpone (;code) reveal [ ; immediate
+
+: <builds       \ leaves two cells for CFA before PFA to allow patching code
+                \ field
+                align   here latest dup @ ,link  2 allot !
+                bl word
+                dup dup c@ 1+ here swap imove
+                c@ 1+ allot align 2 cells allot ;
 : :             <builds ,enter hide ] ;
 : ;             ,exit reveal [ ; immediate
-: :noname       align latest @ here latest ! ]  , here ; immediate
+: :noname       align latest @ here dup latest ! ,enter ] ; immediate
 
-: docon         ;
-: dodata        ;
-: dodefer       ;
-: create        <builds dodata here , ;
-: constant      <builds docon align , ;
-: variable      <builds docon align vp dup @ dup , cell+ swap ! ;
+: does>         postpone (;code) $4020 , ['] dodoes , ; immediate
+: alloc         vp @ dup rot + vp ! ;
+: create        <builds ,dovar ;
+\ : constant      <builds , does> @ ;
+\ : variable      <builds cell alloc , does> ;
+\ : buffer:       <builds alloc , does> ;
+: constant      <builds ,docon , ;
+: variable      <builds ,docon cell alloc , ;
+: buffer:       <builds ,docon alloc , ;
 : defer         <builds $FFFF , 6 allot ; immediate
 : is            ' $FFFF over ! cell+ ! ; immediate
 
-: (does>)       here r> 1- latest @ link> #10 + org $B500 , ,call org ;
-: does>         postpone (does>) ; immediate
 : recurse       latest @ link> ,call ; immediate
 : [char]        char postpone literal ; immediate
 \ : (             [char] ) word drop ; immediate
