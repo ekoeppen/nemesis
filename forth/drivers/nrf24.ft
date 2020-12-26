@@ -24,35 +24,22 @@ $16 constant RF:RX_PW_P5
 $17 constant RF:FIFO_STATUS
 $1C constant RF:DYNPD
 
-\ r/w access to the RF registers
 : rf! ( b reg -- ) $20 or +spi >spi >spi -spi ;
 : rf@ ( reg -- b ) +spi >spi spi> -spi ;
 
-: nrf24. ( -- )  \ print out all the RF69 registers
-  cr
-  ."      RF:CONFIG " RF:CONFIG      rf@ h.2 cr
-  ."       RF:EN_AA " RF:EN_AA       rf@ h.2 cr
-  ."   RF:EN_RXADDR " RF:EN_RXADDR   rf@ h.2 cr
-  ."    RF:SETUP_AW " RF:SETUP_AW    rf@ h.2 cr
-  ."  RF:SETUP_RETR " RF:SETUP_RETR  rf@ h.2 cr
-  ."       RF:RF_CH " RF:RF_CH       rf@ h.2 cr
-  ."    RF:RF_SETUP " RF:RF_SETUP    rf@ h.2 cr
-  ."      RF:STATUS " RF:STATUS      rf@ h.2 cr
-  ."  RF:OBSERVE_TX " RF:OBSERVE_TX  rf@ h.2 cr
-  ."         RF:RPD " RF:RPD         rf@ h.2 cr
-  ."  RF:RX_ADDR_P0 " RF:RX_ADDR_P0  +spi >spi spi> h.2 spi> h.2 spi> h.2 spi> h.2 spi> h.2 -spi cr
-  ."  RF:RX_ADDR_P1 " RF:RX_ADDR_P1  +spi >spi spi> h.2 spi> h.2 spi> h.2 spi> h.2 spi> h.2 -spi cr
-  ."  RF:RX_ADDR_P2 " RF:RX_ADDR_P2  rf@ h.2 cr
-  ."  RF:RX_ADDR_P3 " RF:RX_ADDR_P3  rf@ h.2 cr
-  ."  RF:RX_ADDR_P4 " RF:RX_ADDR_P4  rf@ h.2 cr
-  ."  RF:RX_ADDR_P5 " RF:RX_ADDR_P5  rf@ h.2 cr
-  ."     RF:TX_ADDR " RF:TX_ADDR     +spi >spi spi> h.2 spi> h.2 spi> h.2 spi> h.2 spi> h.2 -spi cr
-  ."    RF:RX_PW_P0 " RF:RX_PW_P0    rf@ h.2 cr
-  ."    RF:RX_PW_P1 " RF:RX_PW_P1    rf@ h.2 cr
-  ."    RF:RX_PW_P2 " RF:RX_PW_P2    rf@ h.2 cr
-  ."    RF:RX_PW_P3 " RF:RX_PW_P3    rf@ h.2 cr
-  ."    RF:RX_PW_P4 " RF:RX_PW_P4    rf@ h.2 cr
-  ."    RF:RX_PW_P5 " RF:RX_PW_P5    rf@ h.2 cr
-  ." RF:FIFO_STATUS " RF:FIFO_STATUS rf@ h.2 cr
-  ."       RF:DYNPD " RF:DYNPD       rf@ h.2 cr
-  ;
+: rf!!          ( addr n reg -- )
+                +spi >spi
+                begin swap dup c@ >spi 1+ swap 1- dup 0= until
+                drop -spi ;
+
+: rf-init       ;
+: -rf-pwr       %00001000 RF:CONFIG rf! -rf-ce ;
+: rf-ch!        ( ch -- )     RF:RF_CH rf! ;
+: rf-rx-addr!   ( addr n -- ) RF:RX_ADDR_P1 $20 or rf!! ;
+: rf-tx-addr!   ( addr n -- ) RF:TX_ADDR $20 or rf!! ;
+
+: rf-tx-mode    -rf-ce %00001010 RF:CONFIG rf! ;
+: rf-rx-mode    %00001011 RF:CONFIG rf! +rf-ce ;
+
+: rf-tx         ( addr n -- ) 2drop ;
+: rf-rx         ( addr n -- ) 2drop ;
