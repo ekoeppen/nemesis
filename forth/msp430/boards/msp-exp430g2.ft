@@ -1,4 +1,6 @@
-$1000 constant init-cold
+$1000 constant info
+
+$1000 constant 'turnkey
 $1002 constant init-latest
 $1004 constant init-dp
 $1006 constant init-vp
@@ -21,10 +23,11 @@ $030C constant >in
 $030E constant current
 $0310 constant base
 $0312 constant hp
+$0314 constant handler
 
 $0400 constant ram-top
 
-code reset-handler $4307 $4031 $0240 $4034 $027E $4035 $1000 $4530 end-code
+code reset-handler $4307 $4031 $0240 $4034 $027E $4020 $ffff end-code
 
 include ../core.ft
 
@@ -49,9 +52,10 @@ include ../utils.ft
 
 : setup-ports   %00001000 P1OUT c!
                 %00001000 P1REN c!
+                %00001000 dup P1IE c! P1IFG c!
                 %10100101 P1DIR c!
                 %11100110 dup P1SEL c! P1SEL2 c!
-                %00000010 P2DIR c! ;
+                %00000011 P2DIR c! ;
 
 : setup-uart    %00000001 UCA0CTL1 c!
                 %00000000 UCA0CTL0 c!
@@ -88,6 +92,13 @@ include ../utils.ft
 : -led          %00000001 P1OUT bic! ;
 : +-led         %00000001 P1OUT xor! ;
 
-include ../../drivers/rfm69.ft
+: +rf-ce        %00000001 P2OUT bis! ;
+: -rf-ce        %00000001 P2OUT bic! ;
 
-: cold          setup-hw abort ;
+include ../../drivers/nrf24.ft
+include ../../drivers/nrf24-utils.ft
+
+
+: turnkey       setup-hw
+                ." 430Forth/MSP-EXP430G XXXXXXXX ready" cr
+                abort ;

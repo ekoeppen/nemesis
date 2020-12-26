@@ -17,16 +17,3 @@ $012C constant FCTL3
                     $A580 + FCTL2 ! lock-flash ;
 
 : +flash-write      unlock-flash   $A540 FCTL1 ! ;
-
-: (clear-info)      init-cold dup pad #12 cells move   erase-segment ;
-: (restore-info)    unlock-flash   +flash-write pad init-cold #12 cells move ;
-
-: save              (clear-info)
-                    latest @ pad 2+ !   dp @ pad 4 + !   vp @ pad 6 + !
-                    (restore-info) ;
-
-: restore           (clear-info)
-                    6 cells pad + pad 6 cells move
-                    (restore-info)
-                    init-dp @ erase-to-end
-                    reset-handler ;
