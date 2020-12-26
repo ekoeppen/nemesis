@@ -1,0 +1,118 @@
+$1000 constant info
+
+$1000 constant 'turnkey
+$1002 constant init-latest
+$1004 constant init-dp
+$1006 constant init-vp
+$1008 constant user-low
+$100A constant user-high
+$100C constant save-init
+
+$0200 constant ram-bottom
+$0240 constant r0
+$027E constant s0
+$0280 constant tib
+$0080 constant tib#
+$0300 constant latest
+$0302 constant dp
+$0304 constant vp
+$0306 constant state
+$0308 constant (source)
+$030A constant source#
+$030C constant >in
+$030E constant current
+$0310 constant base
+$0312 constant hp
+$0314 constant handler
+
+$0400 constant ram-top
+
+code reset-handler $4307 $4031 $0240 $4034 $027E $4020 $ffff end-code
+
+include ../core.ft
+
+include ../cpus/msp430g2x53/sfr.fs
+include ../cpus/msp430g2x53/wdt.fs
+include ../cpus/msp430g2x53/clock.fs
+include ../cpus/msp430g2x53/usci.fs
+include ../cpus/msp430g2x53/flash.fs
+include ../cpus/msp430g2x53/ports.fs
+include ../cpus/msp430g2x53/tlv.fs
+
+include ../io.ft
+include ../compiler.ft
+include ../utils.ft
+
+: (set-speed)   ( caldco calbc -- )
+                c@ BCSCTL1 c!   c@ DCOCTL c!   0 BCSCTL2 c! ;
+: set-speed-16mhz   CALDCO_16MHZ CALBC1_16MHZ (set-speed) ;
+: set-speed-12mhz   CALDCO_12MHZ CALBC1_12MHZ (set-speed) ;
+: set-speed-8mhz   CALDCO_8MHZ CALBC1_8MHZ (set-speed) ;
+: set-speed-1mhz   CALDCO_1MHZ CALBC1_1MHZ (set-speed) ;
+
+: setup-ports   %00010000 P1DIR c!
+                %11100110 dup P1SEL c! P1SEL2 c!
+                %00000000 dup P2SEL c! P2SEL2 c!
+                %00100010 P2DIR c!
+                %10000000 P2IE c! 0 P2IFG c! ;
+
+: standby-ports %00000000 P1DIR c!
+                %00000000 dup P1SEL c! P1SEL2 c!
+                %11100000 P1OUT c!
+                %11100000 P1REN c! ;
+
+: setup-uart    %00000001 UCA0CTL1 c!
+                %00000000 UCA0CTL0 c!
+                %10000000 UCA0CTL1 bis!
+                #65 UCA0BR0 c!   #3 UCA0BR1 c!
+                %00000100 UCA0MCTL c!
+                %00000001 UCA0CTL1 bic!
+                $1000 begin 1- dup 0= until drop ;
+
+: +spi          %00000010 P2OUT bic! ;
+: -spi          %00000010 P2OUT bis! ;
+
+: setup-spi     -spi
+                %00000001 UCB0CTL1 c!
+                %10101001 UCB0CTL0 c!         \ set SPI mode, master, sync
+                %10000000 UCB0CTL1 bis!       \ clock = SMCLK
+                8 UCB0BR0 c! 0 UCB0BR1 c!     \ prescaler 1x
+                %00000001 UCB0CTl1 bic! ;     \ enable module
+
+: spi.          UCB0CTL0 8 dump ;
+: >spi>         ( c -- c )
+                begin %00001000 $03 bit@ until UCB0TXBUF c!
+                begin %00000100 $03 bit@ until UCB0RXBUF c@ ;
+: >spi          >spi> drop ;
+: spi>          $FF >spi> ;
+
+: +led          %00100000 P2OUT bis! ;
+: -led          %00100000 P2OUT bic! ;
+: +-led         %00100000 P2OUT xor! ;
+: +rf-reset     %00000001 dup P2DIR bis! P2OUT bis! ;
+: -rf-reset     %00000001 dup P2DIR bis! P2OUT bic! ;
+
+include ../../drivers/rfm69.ft
+
+: until-btn     eint >r %10000000 P2IFG
+                begin r@ execute standby 2dup bit@ until bic! rdrop ;
+: forever       wdt/1s vlo>lfo +wdt-ie eint
+                begin dup execute standby again drop ;
+
+: setup-hw      disable-wdt
+                set-speed-8mhz
+                #16 set-flash-clk
+                setup-ports
+                setup-uart
+                setup-spi
+                rf-init ;
+
+: pwr-down      -rf-pwr -spi wdt/1s vlo>lfo
+                standby-ports
+                +wdt-ie eint begin
+                   +led $40 emit -led standby
+                %10000000 P2IFG bit@ until
+                %10000000 P2IFG bic! setup-ports ;
+: turnkey       setup-hw
+                ." 430Forth/RFM69 board XXXXXXXX ready" cr
+                abort ;

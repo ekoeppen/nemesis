@@ -1,6 +1,24 @@
-: rf! ( b reg -- ) $80 or +spi >spi >spi -spi ;
-: rf@ ( reg -- b ) +spi >spi spi> -spi ;
+: rf!           ( b reg -- ) $80 or +spi >spi >spi -spi ;
+: rf@           ( reg -- b ) +spi >spi spi> -spi ;
 
-: setup-rf ;
 
-: rf. ( -- ) ;
+: rf!!          ( addr n reg -- )
+                +spi >spi
+                begin swap dup c@ >spi 1+ swap 1- 0= until
+                drop -spi ;
+
+: rf-init       ( addr -- )
+                begin dup c@ dup $FF <> while
+                   swap 1+ tuck c@ rf! 1+
+                repeat 2drop ;
+
+: -rf-pwr       0 1 rf! ;
+: rf-ch!        ( ch -- )     drop ;
+: rf-rx-addr!   ( addr n -- ) 2drop ;
+: rf-tx-addr!   ( addr n -- ) 2drop ;
+
+: rf-tx-mode    ;
+: rf-rx-mode    ;
+
+: rf-tx         ( addr n -- ) 2drop ;
+: rf-rx         ( addr n -- ) 2drop ;
