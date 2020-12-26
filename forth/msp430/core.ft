@@ -46,7 +46,7 @@ code rdrop      $5321 $4530 end-code
 code sp@        $8324 $4784 $0000 $4407 $4530 end-code
 code rp@        $8324 $4784 $0000 $4107 $4530 end-code
 code sp!        $4704 $4437 $4530 end-code
-code rp!        $412a $4701 $120a $4437 $4530 end-code
+code rp!        $4701 $4437 $4530 end-code
 
 : 2dup          over over ;
 : tuck          swap over ;
