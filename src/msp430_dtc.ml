@@ -35,21 +35,22 @@ let append_code code data =
   Data.append_short code data
 
 let create_image_data =
-  Buffer.create (16 * 1024)
+  Buffer.create (32 * 1024)
 
 let create_info p data latest base info ram user =
-  let cold = Ast1.find_word_or_zero p "cold" in
-  let header = Buffer.create ((4 * 2 + 4 * 1) * 2) in
+  let turnkey = Ast1.find_word_or_zero p "turnkey" in
+  let header = Buffer.create ((5 * 2 + 4 * 1) * 2) in
   let dp = (((Data.here data) + base) + 512) land 0xFE00 in
-  Data.append_short cold header;
+  Data.append_short turnkey header;
   Data.append_short (latest + base) header;
   Data.append_short dp header;
   Data.append_short ram header;
   Data.append_int user header;
-  Data.append_short cold header;
+  Data.append_short turnkey header;
   Data.append_short (latest + base) header;
   Data.append_short dp header;
   Data.append_short ram header;
+  Data.append_short turnkey header;
   Data.append_int user header;
   Ihex.data_to_string info 0 (Stdlib.Buffer.to_bytes header)
 
@@ -71,7 +72,13 @@ let create_vectors p =
   (default_vector_list 0 default_handler) @ [":" ^ reset_handler_str ^
     Printf.sprintf "%02X\n" (Ihex.calculate_crc reset_handler_str)]
 
+let patch_reset_handler p data base =
+  let reset_handler = Ast1.find_word_or_zero p "reset-handler" in
+  let cold = Ast1.find_word_or_zero p "cold" in
+  Data.update_short (reset_handler + 12 - base) cold data
+
 let finalize_image_data p data latest base info ram user =
+  let () = patch_reset_handler p data base in
   let info_lines = create_info p data latest base info ram user in
   let vector_lines = create_vectors p in
   let body_lines = Ihex.data_to_string base 0 (Stdlib.Buffer.to_bytes data) in
