@@ -152,19 +152,25 @@ code dodoes     $8324 $4784 $0000 $4137 $4727 $4530 end-code
                   else                            \ textadr
                     ?number if                    \ converted ok
                       state @ if postpone literal then
-                    else count type [char] ? emit cr then  \ error
+                    else
+                      count type [char] ? emit cr
+                      $fff3 throw
+                    then  \ error
                   then
                 repeat drop ;
 : evaluate      source# !  (source) ! 0 >in !  (interpret) ;
-: quit          r0 rp! 0 state !
-                setup-pointers
-                ." 430Forth XXXXXXXX ready" cr
+: quit          r0 rp! 0 state ! 0 handler !
                 begin
-                  xon
-                  tib dup tib# accept space
-                  xoff
-                  evaluate
+                  xon tib dup tib# accept space xoff
+                  ['] evaluate catch
+                  ?dup if
+                    dup $fff3 <> if $45 emit $23 emit . else drop then
+                    s0 sp!
+                  then
                   state @ 0= if space prompt then
                 again ;
 
-: abort         s0 sp! #16 base ! quit ;
+: abort         s0 sp! quit ;
+: cold          s0 sp! r0 rp! #16 base !
+                setup-pointers
+                'turnkey @ ?dup if execute else abort then cold ;
