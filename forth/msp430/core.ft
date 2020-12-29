@@ -15,6 +15,9 @@ code sr@        $8324 $4784 $0000 $4207 $4530 end-code
 code default-handler
                 $c0f1 $00f8 $0000 $1300 end-code
 
+code <irq       $8224 $4784 $0000 $4684 $0002 $4117 $0002 $4530 end-code
+code irq>       $4135 $4781 $0000 $4437 $4436 $1300 end-code
+
 \ Compiler and control flow
 
 code docol      $4136 $1205 $4605 $4530 end-code

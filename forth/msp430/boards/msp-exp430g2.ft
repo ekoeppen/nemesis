@@ -27,8 +27,6 @@ $0314 constant handler
 
 $0400 constant ram-top
 
-code reset-handler $4307 $4031 $0240 $4034 $027E $4020 $ffff end-code
-
 include ../core.ft
 
 include ../cpus/msp430g2x53/sfr.fs
@@ -98,6 +96,7 @@ include ../utils.ft
 include ../../drivers/nrf24.ft
 include ../../drivers/nrf24-utils.ft
 
+code vector-31  $4307 $4031 $0240 $4034 $027E $4020 cold end-code
 
 : turnkey       setup-hw
                 ." 430Forth/MSP-EXP430G XXXXXXXX ready" cr

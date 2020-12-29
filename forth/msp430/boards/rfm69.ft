@@ -116,3 +116,7 @@ include ../../drivers/rfm69.ft
 : turnkey       setup-hw
                 ." 430Forth/RFM69 board XXXXXXXX ready" cr
                 abort ;
+
+
+: vector-26     <irq 1 $316 +! %0000000100000111 and %00001000 or irq> ;
+code vector-31  $4307 $4031 $0240 $4034 $027E $4020 cold end-code
