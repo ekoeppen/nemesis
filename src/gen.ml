@@ -100,7 +100,7 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
     T.align data;
     word.address <- (Data.here data) + C.base
 
-  let handle_code_word (word : Ast1.definition) data =
+  let handle_code_word dict (word : Ast1.definition) data =
     add_header word data;
     let h = Data.here data in
     if (word.constant) then begin
@@ -110,6 +110,7 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
     end else begin
      List.iter ~f:(fun word -> match word with
       | Ast1.Number n -> T.append_code n data
+      | Ast1.Call w -> resolve_word dict w data
       | _ -> ()) word.thread
     end;
     word.length <- ((Data.here data) - h)
@@ -156,7 +157,7 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
 
   let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
     if (word.code)
-    then handle_code_word word data
+    then handle_code_word dict word data
     else handle_word dict word data
 
   let generate_program_code (p : Ast1.program) data =
