@@ -24,6 +24,8 @@ module type Intf = sig
 
   val append_code: int -> Buffer.t -> unit
 
+  val add_header : Ast1.definition -> Buffer.t -> int -> int -> int
+
   val create_image_data: Buffer.t
 
   val finalize_image_data:

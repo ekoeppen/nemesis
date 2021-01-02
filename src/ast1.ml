@@ -24,8 +24,7 @@ type definition = {
   name : string ;
   immediate : bool ;
   thread : word list ;
-  code : bool ;
-  constant : bool;
+  kind : Ast0.deftype;
   mutable address : int ;
   mutable length : int ;
 }
@@ -93,11 +92,10 @@ let of_ast0_program (p : Ast0.program) =
   List.map ~f:(fun d -> {
       name = d.name;
       immediate = d.immediate;
-      code = d.code;
-      constant = d.constant;
       thread = of_ast0_words p d.words;
       address = 0;
       length = 0;
+      kind = d.kind;
     }) p
 
 let print_thread t =
@@ -105,11 +103,18 @@ let print_thread t =
 
 let print_definition (d : definition) =
   Printf.printf "%08x: (%04d) " d.address d.length;
-  if (d.code) then Printf.printf "code " else Printf.printf ": ";
-  Printf.printf "%s " d.name; print_thread d.thread;
-  if (d.code) then Printf.printf "end-code " else Printf.printf "; ";
-  if (d.immediate) then Printf.printf("immediate");
-  Printf.printf "\n"
+  match d.kind with
+  | Ast0.Code ->
+      Printf.printf "code %s " d.name; print_thread d.thread;
+      Printf.printf "end-code\n"
+  | Ast0.Highlevel ->
+      Printf.printf ": %s " d.name; print_thread d.thread;
+      Printf.printf ";\n"
+  | Ast0.Variable -> Printf.printf "variable %s\n" d.name
+  | Ast0.Buffer ->
+      Printf.printf "%s buffer: %s\n" (of_word (List.hd_exn d.thread)) d.name
+  | Ast0.Constant ->
+      Printf.printf "%s constant %s\n" (of_word (List.hd_exn d.thread)) d.name
 
 let print_program (p : program) =
   List.iter ~f:(fun d -> print_definition d) p;

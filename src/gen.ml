@@ -4,6 +4,7 @@ open Core
 module Impl (T : Target.Intf) (C : Target.Conf) = struct
 
   let latest = ref 0
+  let latest_ram = ref C.ram
   let here_stack = Stack.create ()
 
   let push_here n =
@@ -88,31 +89,12 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
     | Undefined s -> raise (Failure ("Undefined word " ^ s))
     | _ -> ()
 
-  let add_header (word : Ast1.definition) data =
-    T.align data;
-    let l = Data.here data in
-    T.append_address (if !latest <> 0 then (!latest + C.base) else 0) data;
-    latest := l;
-    Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
-    Buffer.add_char data '\xff';
-    Buffer.add_char data (char_of_int (String.length word.name));
-    Buffer.add_string data word.name;
-    T.align data;
-    word.address <- (Data.here data) + C.base
-
   let handle_code_word dict (word : Ast1.definition) data =
-    add_header word data;
     let h = Data.here data in
-    if (word.constant) then begin
-      match List.hd_exn word.thread with
-      | Ast1.Number n -> T.append_inline_constant n data
-      | _ -> raise (Failure "constants can only be numbers")
-    end else begin
-     List.iter ~f:(fun word -> match word with
+    List.iter ~f:(fun word -> match word with
       | Ast1.Number n -> T.append_code n data
       | Ast1.Call w -> resolve_word dict w data
-      | _ -> ()) word.thread
-    end;
+      | _ -> ()) word.thread;
     word.length <- ((Data.here data) - h)
 
   let compile_postpone dict word data =
@@ -146,7 +128,6 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
     | [] -> ()
 
   let handle_word (dict : Ast1.program) (word : Ast1.definition) data =
-    add_header word data;
     let h = Data.here data in
     let docol = Ast1.find_word_or_zero dict "docol" in
     let exit = Ast1.find_word_or_zero dict "exit" in
@@ -155,10 +136,30 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
     T.add_exit exit data;
     word.length <- ((Data.here data) - h)
 
+  let handle_constant (word : Ast1.definition) data =
+    match List.hd_exn word.thread with
+    | Ast1.Number n -> T.append_inline_constant n data
+    | _ -> raise (Failure "constants can only be numbers")
+
+  let handle_variable data =
+    T.append_inline_constant !latest_ram data;
+    latest_ram := !latest_ram + T.cell_size
+
+  let handle_buffer (word : Ast1.definition) data =
+    match List.hd_exn word.thread with
+    | Ast1.Number w ->
+        T.append_inline_constant !latest_ram data;
+        latest_ram := !latest_ram + w
+    | _ -> raise (Failure "buffer size needs to be a number")
+
   let generate_word_code (dict : Ast1.program) (word : Ast1.definition) data =
-    if (word.code)
-    then handle_code_word dict word data
-    else handle_word dict word data
+    latest := T.add_header word data C.base !latest;
+    match word.kind with
+    | Code -> handle_code_word dict word data
+    | Highlevel -> handle_word dict word data
+    | Variable -> handle_variable data
+    | Constant -> handle_constant word data
+    | Buffer -> handle_buffer word data
 
   let generate_program_code (p : Ast1.program) data =
     let _result = List.fold ~init:(p, data)
@@ -170,6 +171,6 @@ module Impl (T : Target.Intf) (C : Target.Conf) = struct
   let generate_image (p : Ast1.program) =
     let data = T.create_image_data in
     generate_program_code p data;
-    T.finalize_image_data p data !latest C.base C.info C.ram C.user
+    T.finalize_image_data p data !latest !latest_ram C.base C.info C.user
 
 end

@@ -1,12 +1,18 @@
 open Base
 open Core
 
+type deftype =
+  | Highlevel
+  | Code
+  | Constant
+  | Variable
+  | Buffer
+
 type definition = {
   name : string;
   words : string list;
   immediate : bool;
-  code : bool;
-  constant : bool;
+  kind : deftype ;
 }
 
 type content = {

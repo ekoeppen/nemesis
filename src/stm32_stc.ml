@@ -43,6 +43,18 @@ let append_number n data =
 let append_code code data =
   Data.append_short code data
 
+let add_header (word : Ast1.definition) data base latest =
+  align data;
+  let l = Data.here data in
+  append_address (if latest <> 0 then (latest + base) else 0) data;
+  Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
+  Buffer.add_char data '\xff';
+  Buffer.add_char data (char_of_int (String.length word.name));
+  Buffer.add_string data word.name;
+  align data;
+  word.address <- (Data.here data) + base;
+  l
+
 let create_image_data =
   let data = Buffer.create (64 * 1024) in
   Buffer.add_bytes data (Bytes.make 0x90 '\xff');

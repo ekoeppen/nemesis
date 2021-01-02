@@ -27,6 +27,8 @@ rule next_token = parse
   | ':' { COLON }
   | ';' { SEMICOLON }
   | "constant" { CONSTANT }
+  | "variable" { VARIABLE }
+  | "buffer:" { BUFFER }
   | "immediate" { IMMEDIATE }
   | "code" { CODE }
   | "end-code" { END_CODE }

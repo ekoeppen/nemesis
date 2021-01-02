@@ -34,22 +34,34 @@ let append_number n data =
 let append_code code data =
   Data.append_short code data
 
+let add_header (word : Ast1.definition) data base latest =
+  align data;
+  let l = Data.here data in
+  append_address (if latest <> 0 then (latest + base) else 0) data;
+  Buffer.add_char data (if (word.immediate) then '\xfe' else '\xff');
+  Buffer.add_char data '\xff';
+  Buffer.add_char data (char_of_int (String.length word.name));
+  Buffer.add_string data word.name;
+  align data;
+  word.address <- (Data.here data) + base;
+  l
+
 let create_image_data =
   Buffer.create (32 * 1024)
 
-let create_info p data latest base info ram user =
+let create_info p data latest latest_ram base info user =
   let turnkey = Ast1.find_word_or_zero p "turnkey" in
   let header = Buffer.create ((5 * 2 + 4 * 1) * 2) in
   let dp = (((Data.here data) + base) + 512) land 0xFE00 in
   Data.append_short turnkey header;
   Data.append_short (latest + base) header;
   Data.append_short dp header;
-  Data.append_short ram header;
+  Data.append_short latest_ram header;
   Data.append_int user header;
   Data.append_short turnkey header;
   Data.append_short (latest + base) header;
   Data.append_short dp header;
-  Data.append_short ram header;
+  Data.append_short latest_ram header;
   Data.append_short turnkey header;
   Data.append_int user header;
   Ihex.data_to_string info 0 (Stdlib.Buffer.to_bytes header)
@@ -67,8 +79,8 @@ let rec create_vectors p n =
       create_vectors p (n + 1)
   end
 
-let finalize_image_data p data latest base info ram user =
-  let info_lines = create_info p data latest base info ram user in
+let finalize_image_data p data latest latest_ram base info user =
+  let info_lines = create_info p data latest latest_ram base info user in
   let vector_lines = create_vectors p 0 in
   let body_lines = Ihex.data_to_string base 0 (Stdlib.Buffer.to_bytes data) in
   String.concat (info_lines @ body_lines @ vector_lines @ [":00000001FF\n"])
